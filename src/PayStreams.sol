@@ -9,7 +9,7 @@ import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import { IHooks } from "./interfaces/IHooks.sol";
 import { IPayStreams } from "./interfaces/IPayStreams.sol";
 
-contract PyStreams is Ownable, IPayStreams {
+contract PayStreams is Ownable, IPayStreams {
     using SafeERC20 for IERC20;
 
     uint16 private constant BASIS_POINTS = 10_000;
@@ -36,9 +36,13 @@ contract PyStreams is Ownable, IPayStreams {
      */
     mapping(address user => mapping(bytes32 streamHash => HookConfig hookConfig)) private s_hookConfig;
     /**
-     * @dev Utility storage for the stream hashes.
+     * @dev Utility storage for the streamer's stream hashes.
      */
     mapping(address streamer => bytes32[] streamHashes) private s_streamerToStreamHashes;
+    /**
+     * @dev Utility storage for the recipient's stream hashes.
+     */
+    mapping(address recipient => bytes32[] streamHashes) private s_recipientToStreamHashes;
 
     /**
      * @notice Initializes the owner and the fee value in basis points.
@@ -120,6 +124,7 @@ contract PyStreams is Ownable, IPayStreams {
         if (s_streamData[streamHash].streamer != address(0)) revert PayStreams__StreamAlreadyExists(streamHash);
         s_streamData[streamHash] = _streamData;
         s_streamerToStreamHashes[msg.sender].push(streamHash);
+        s_streamerToStreamHashes[_streamData.recipient].push(streamHash);
         s_hookConfig[msg.sender][streamHash] = _streamerHookConfig;
 
         if (_streamData.streamerVault != address(0) && _streamerHookConfig.callAfterStreamCreated) {
@@ -174,27 +179,29 @@ contract PyStreams is Ownable, IPayStreams {
             revert PayStreams__StreamHasNotStartedYet(_streamHash, streamData.startingTimestamp);
         }
         if (streamData.isPaused) revert PayStreams__StreamPaused();
+
         uint256 amountToCollect = (
             streamData.amount * (block.timestamp - streamData.startingTimestamp) / streamData.duration
         ) - streamData.totalStreamed;
+        if (amountToCollect == 0) revert PayStreams__ZeroAmountToCollect();
         if (amountToCollect > streamData.amount && !streamData.recurring) {
             amountToCollect = streamData.amount - streamData.totalStreamed;
         }
-
-        if (amountToCollect == 0) revert PayStreams__ZeroAmountToCollect();
         uint256 feeAmount = (amountToCollect * s_feeInBasisPoints) / BASIS_POINTS;
+
         s_streamData[_streamHash].totalStreamed += amountToCollect;
 
         HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
 
         if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeFundsCollected) {
-            IHooks(streamData.streamerVault).beforeFundsCollected(_streamHash, amountToCollect);
+            IHooks(streamData.streamerVault).beforeFundsCollected(_streamHash, amountToCollect, feeAmount);
         }
         if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeFundsCollected) {
-            IHooks(streamData.streamerVault).beforeFundsCollected(_streamHash, amountToCollect);
+            IHooks(streamData.streamerVault).beforeFundsCollected(_streamHash, amountToCollect, feeAmount);
         }
 
+        s_collectedFees[streamData.token] += feeAmount;
         if (streamData.streamerVault != address(0)) {
             streamData.recipientVault != address(0)
                 ? IERC20(streamData.token).safeTransferFrom(
@@ -204,7 +211,6 @@ contract PyStreams is Ownable, IPayStreams {
                     streamData.streamerVault, streamData.recipient, amountToCollect - feeAmount
                 );
 
-            s_collectedFees[streamData.token] += feeAmount;
             IERC20(streamData.token).safeTransferFrom(streamData.streamerVault, address(this), feeAmount);
         } else {
             streamData.recipientVault != address(0)
@@ -215,15 +221,14 @@ contract PyStreams is Ownable, IPayStreams {
                     streamData.streamer, streamData.recipient, amountToCollect - feeAmount
                 );
 
-            s_collectedFees[streamData.token] += feeAmount;
             IERC20(streamData.token).safeTransferFrom(streamData.streamer, address(this), feeAmount);
         }
 
         if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterFundsCollected) {
-            IHooks(streamData.streamerVault).afterFundsCollected(_streamHash, amountToCollect);
+            IHooks(streamData.streamerVault).afterFundsCollected(_streamHash, amountToCollect, feeAmount);
         }
         if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterFundsCollected) {
-            IHooks(streamData.streamerVault).afterFundsCollected(_streamHash, amountToCollect);
+            IHooks(streamData.streamerVault).afterFundsCollected(_streamHash, amountToCollect, feeAmount);
         }
 
         emit FundsCollectedFromStream(_streamHash, amountToCollect);
@@ -340,7 +345,7 @@ contract PyStreams is Ownable, IPayStreams {
             IHooks(streamData.streamerVault).beforeStreamUnPaused(_streamHash);
         }
 
-        s_streamData[_streamHash].isPaused = true;
+        s_streamData[_streamHash].isPaused = false;
 
         if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamClosed) {
             IHooks(streamData.streamerVault).afterStreamUnPaused(_streamHash);
@@ -402,8 +407,17 @@ contract PyStreams is Ownable, IPayStreams {
      * @param _streamer The stream creator's address.
      * @return An array of stream hashes.
      */
-    function getStreamHashes(address _streamer) external view returns (bytes32[] memory) {
+    function getStreamerStreamHashes(address _streamer) external view returns (bytes32[] memory) {
         return s_streamerToStreamHashes[_streamer];
+    }
+
+    /**
+     * @notice Gets the hashes of the streams the user is a recipient of.
+     * @param _recipient The stream recipient's address.
+     * @return An array of stream hashes.
+     */
+    function getRecipientStreamHashes(address _recipient) external view returns (bytes32[] memory) {
+        return s_recipientToStreamHashes[_recipient];
     }
 
     /**
