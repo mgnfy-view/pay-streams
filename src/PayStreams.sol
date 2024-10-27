@@ -361,7 +361,7 @@ contract PayStreams is Ownable, IPayStreams {
      * @notice Gets the fee value for streaming in basis points.
      * @return The fee value for streaming in basis points.
      */
-    function getFeeInBasisPoints() external view returns (uint256) {
+    function getFeeInBasisPoints() external view returns (uint16) {
         return s_feeInBasisPoints;
     }
 
