@@ -13,7 +13,7 @@
     <img src="assets/icon.svg" alt="Logo" width="80" height="80">
   </a> -->
 
-  <h3 align="center">Soul Streams</h3>
+  <h3 align="center">PayStreams</h3>
 
   <p align="center">
     PayStreams is a payment streaming service leveraging PyUSD, supercharged with hooks
