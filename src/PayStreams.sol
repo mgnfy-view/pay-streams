@@ -9,6 +9,12 @@ import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import { IHooks } from "./interfaces/IHooks.sol";
 import { IPayStreams } from "./interfaces/IPayStreams.sol";
 
+/**
+ * @title PayStreams.
+ * @author mgnfy-view.
+ * @notice PayStreams is a payment streamming service leveraging PYUSD (made for the PayPal
+ * hackathon), and supercharged with hooks.
+ */
 contract PayStreams is Ownable, IPayStreams {
     using SafeERC20 for IERC20;
 
