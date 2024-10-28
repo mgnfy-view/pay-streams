@@ -130,7 +130,7 @@ contract PayStreams is Ownable, IPayStreams {
         if (s_streamData[streamHash].streamer != address(0)) revert PayStreams__StreamAlreadyExists(streamHash);
         s_streamData[streamHash] = _streamData;
         s_streamerToStreamHashes[msg.sender].push(streamHash);
-        s_streamerToStreamHashes[_streamData.recipient].push(streamHash);
+        s_recipientToStreamHashes[_streamData.recipient].push(streamHash);
         s_hookConfig[msg.sender][streamHash] = _streamerHookConfig;
 
         if (_streamData.streamerVault != address(0) && _streamerHookConfig.callAfterStreamCreated) {
@@ -151,7 +151,7 @@ contract PayStreams is Ownable, IPayStreams {
      */
     function setVaultForStream(bytes32 _streamHash, address _vault) external {
         StreamData memory streamData = s_streamData[_streamHash];
-        if (msg.sender != streamData.streamer || msg.sender != streamData.recipient) revert PayStreams__Unauthorized();
+        if (msg.sender != streamData.streamer && msg.sender != streamData.recipient) revert PayStreams__Unauthorized();
 
         msg.sender == streamData.streamer
             ? s_streamData[_streamHash].streamerVault = _vault
@@ -167,7 +167,7 @@ contract PayStreams is Ownable, IPayStreams {
      */
     function setHookConfigForStream(bytes32 _streamHash, HookConfig calldata _hookConfig) external {
         StreamData memory streamData = s_streamData[_streamHash];
-        if (msg.sender != streamData.streamer || msg.sender != streamData.recipient) revert PayStreams__Unauthorized();
+        if (msg.sender != streamData.streamer && msg.sender != streamData.recipient) revert PayStreams__Unauthorized();
 
         s_hookConfig[msg.sender][_streamHash] = _hookConfig;
 
@@ -184,15 +184,8 @@ contract PayStreams is Ownable, IPayStreams {
         if (streamData.startingTimestamp > block.timestamp) {
             revert PayStreams__StreamHasNotStartedYet(_streamHash, streamData.startingTimestamp);
         }
-
-        uint256 amountToCollect = (
-            streamData.amount * (block.timestamp - streamData.startingTimestamp) / streamData.duration
-        ) - streamData.totalStreamed;
+        (uint256 amountToCollect, uint256 feeAmount) = getAmountToCollectFromStreamAndFeeToPay(_streamHash);
         if (amountToCollect == 0) revert PayStreams__ZeroAmountToCollect();
-        if (amountToCollect > streamData.amount && !streamData.recurring) {
-            amountToCollect = streamData.amount - streamData.totalStreamed;
-        }
-        uint256 feeAmount = (amountToCollect * s_feeInBasisPoints) / BASIS_POINTS;
 
         s_streamData[_streamHash].totalStreamed += amountToCollect;
 
@@ -390,5 +383,21 @@ contract PayStreams is Ownable, IPayStreams {
         returns (bytes32)
     {
         return keccak256(abi.encode(_streamer, _recipient, _token, _tag));
+    }
+
+    function getAmountToCollectFromStreamAndFeeToPay(bytes32 _streamHash) public view returns (uint256, uint256) {
+        StreamData memory streamData = s_streamData[_streamHash];
+
+        if (block.timestamp < streamData.startingTimestamp) return (0, 0);
+
+        uint256 amountToCollect = (
+            streamData.amount * (block.timestamp - streamData.startingTimestamp) / streamData.duration
+        ) - streamData.totalStreamed;
+        if (amountToCollect > streamData.amount && !streamData.recurring) {
+            amountToCollect = streamData.amount - streamData.totalStreamed;
+        }
+        uint256 feeAmount = (amountToCollect * s_feeInBasisPoints) / BASIS_POINTS;
+
+        return (amountToCollect - feeAmount, feeAmount);
     }
 }
