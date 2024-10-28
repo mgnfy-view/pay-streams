@@ -2,6 +2,19 @@
 pragma solidity 0.8.24;
 
 interface IPayStreams {
+    /**
+     * @notice The stream details struct.
+     * @param streamer The address of the streamer.
+     * @param streamerVault The address of the streamer's vault.
+     * @param recipient The address of the recipient.
+     * @param recipientVault The address of the recipient's vault.
+     * @param token The address of the token to stream.
+     * @param amount The amount of the token to stream.
+     * @param startingTimestamp The timestamp when the stream begins.
+     * @param duration The duration for which the stream lasts.
+     * @param totalStreamed The total amount collected by recipient from the stream.
+     * @param recurring A bool indicating if the stream is recurring or one-time only.
+     */
     struct StreamData {
         address streamer;
         address streamerVault;
@@ -13,9 +26,25 @@ interface IPayStreams {
         uint256 duration;
         uint256 totalStreamed;
         bool recurring;
-        bool isPaused;
     }
 
+    /**
+     * @notice The hook configuration details struct for both streamer and recipient.
+     * @param callAfterStreamCreated If set, the afterStreamCreated() function will be called on
+     * the user's vault (if it isn't address(0)).
+     * @param callBeforeFundsCollected If set, the beforeFundsCollected() function will be called on
+     * the user's vault (if it isn't address(0)).
+     * @param callAfterFundsCollected If set, the afterFundsCollected() function will be called on
+     * the user's vault (if it isn't address(0)).
+     * @param callBeforeStreamUpdated If set, the beforeStreamUpdated() function will be called on
+     * the user's vault (if it isn't address(0)).
+     * @param callAfterStreamUpdated If set, the afterStreamUpdated() function will be called on
+     * the user's vault (if it isn't address(0)).
+     * @param callBeforeStreamClosed If set, the beforeStreamClosed() function will be called on
+     * the user's vault (if it isn't address(0)).
+     * @param callAfterStreamClosed If set, the afterStreamClosed() function will be called on
+     * the user's vault (if it isn't address(0)).
+     */
     struct HookConfig {
         bool callAfterStreamCreated;
         bool callBeforeFundsCollected;
@@ -24,10 +53,6 @@ interface IPayStreams {
         bool callAfterStreamUpdated;
         bool callBeforeStreamClosed;
         bool callAfterStreamClosed;
-        bool callBeforeStreamPaused;
-        bool callAfterStreamPaused;
-        bool callBeforeStreamUnPaused;
-        bool callAfterStreamUnPaused;
     }
 
     event FeeRecipientSet(address newFeeRecipient);
@@ -42,8 +67,6 @@ interface IPayStreams {
         bytes32 streamHash, uint256 amount, uint256 startingTimestamp, uint256 duration, bool recurring
     );
     event StreamCancelled(bytes32 streamHash);
-    event StreamPaused(bytes32 streamHash);
-    event StreamUnPaused(bytes32 streamHash);
 
     error PayStreams__AddressZero();
     error PayStreams__InvalidFeeInBasisPoints(uint16 feeInBasisPoints);
@@ -53,6 +76,5 @@ interface IPayStreams {
     error PayStreams__StreamAlreadyExists(bytes32 streamHash);
     error PayStreams__Unauthorized();
     error PayStreams__StreamHasNotStartedYet(bytes32 streamHash, uint256 startingTimestamp);
-    error PayStreams__StreamPaused();
     error PayStreams__ZeroAmountToCollect();
 }
