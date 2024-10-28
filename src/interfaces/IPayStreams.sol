@@ -116,4 +116,5 @@ interface IPayStreams {
         external
         pure
         returns (bytes32);
+    function getAmountToCollectFromStreamAndFeeToPay(bytes32 _streamHash) external view returns (uint256, uint256);
 }
