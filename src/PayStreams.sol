@@ -117,7 +117,7 @@ contract PayStreams is Ownable, IPayStreams {
             _streamData.streamer != msg.sender || _streamData.recipient == address(0)
                 || _streamData.recipientVault != address(0) || !s_supportedTokens[_streamData.token]
                 || _streamData.amount == 0 || _streamData.startingTimestamp < block.timestamp || _streamData.duration == 0
-                || _streamData.totalStreamed != 0 || _streamData.isPaused == true
+                || _streamData.totalStreamed != 0
         ) revert PayStreams__InvalidStreamConfig();
 
         bytes32 streamHash = getStreamHash(msg.sender, _streamData.recipient, _streamData.token, _tag);
@@ -178,7 +178,6 @@ contract PayStreams is Ownable, IPayStreams {
         if (streamData.startingTimestamp > block.timestamp) {
             revert PayStreams__StreamHasNotStartedYet(_streamHash, streamData.startingTimestamp);
         }
-        if (streamData.isPaused) revert PayStreams__StreamPaused();
 
         uint256 amountToCollect = (
             streamData.amount * (block.timestamp - streamData.startingTimestamp) / streamData.duration
@@ -301,60 +300,6 @@ contract PayStreams is Ownable, IPayStreams {
         }
 
         emit StreamCancelled(_streamHash);
-    }
-
-    /**
-     * @notice Allows the creator of the stream to pause the stream.
-     * @param _streamHash The hash of the stream.
-     */
-    function pauseStream(bytes32 _streamHash) external {
-        StreamData memory streamData = s_streamData[_streamHash];
-        if (msg.sender != streamData.streamer) revert PayStreams__Unauthorized();
-
-        HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
-        HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
-
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamClosed) {
-            IHooks(streamData.streamerVault).beforeStreamPaused(_streamHash);
-        }
-
-        s_streamData[_streamHash].isPaused = true;
-
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamClosed) {
-            IHooks(streamData.streamerVault).afterStreamPaused(_streamHash);
-        }
-        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamClosed) {
-            IHooks(streamData.recipientVault).afterStreamPaused(_streamHash);
-        }
-
-        emit StreamPaused(_streamHash);
-    }
-
-    /**
-     * @notice Allows the creator of the stream to unpause the stream.
-     * @param _streamHash The hash of the stream.
-     */
-    function unPauseStream(bytes32 _streamHash) external {
-        StreamData memory streamData = s_streamData[_streamHash];
-        if (msg.sender != streamData.streamer) revert PayStreams__Unauthorized();
-
-        HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
-        HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
-
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamClosed) {
-            IHooks(streamData.streamerVault).beforeStreamUnPaused(_streamHash);
-        }
-
-        s_streamData[_streamHash].isPaused = false;
-
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamClosed) {
-            IHooks(streamData.streamerVault).afterStreamUnPaused(_streamHash);
-        }
-        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamClosed) {
-            IHooks(streamData.recipientVault).afterStreamUnPaused(_streamHash);
-        }
-
-        emit StreamUnPaused(_streamHash);
     }
 
     /**
