@@ -77,4 +77,43 @@ interface IPayStreams {
     error PayStreams__Unauthorized();
     error PayStreams__StreamHasNotStartedYet(bytes32 streamHash, uint256 startingTimestamp);
     error PayStreams__ZeroAmountToCollect();
+
+    function setFeeInBasisPoints(uint16 _feeInBasisPoints) external;
+    function collectFees(address _token, uint256 _amount) external;
+    function setToken(address _token, bool _support) external;
+    function setStream(
+        StreamData calldata _streamData,
+        HookConfig calldata _streamerHookConfig,
+        string memory _tag
+    )
+        external
+        returns (bytes32);
+    function setVaultForStream(bytes32 _streamHash, address _vault) external;
+    function setHookConfigForStream(bytes32 _streamHash, HookConfig calldata _hookConfig) external;
+    function collectFundsFromStream(bytes32 _streamHash) external;
+    function updateStream(
+        bytes32 _streamHash,
+        uint256 _amount,
+        uint256 _startingTimestamp,
+        uint256 _duration,
+        bool _recurring
+    )
+        external;
+    function cancelStream(bytes32 _streamHash) external;
+    function getFeeInBasisPoints() external view returns (uint16);
+    function isSupportedToken(address _token) external view returns (bool);
+    function getCollectedFees(address _token) external view returns (uint256);
+    function getStreamData(bytes32 _streamHash) external view returns (StreamData memory);
+    function getHookConfig(address _user, bytes32 _streamHash) external view returns (HookConfig memory);
+    function getStreamerStreamHashes(address _streamer) external view returns (bytes32[] memory);
+    function getRecipientStreamHashes(address _recipient) external view returns (bytes32[] memory);
+    function getStreamHash(
+        address _streamer,
+        address _recipient,
+        address _token,
+        string memory _tag
+    )
+        external
+        pure
+        returns (bytes32);
 }
