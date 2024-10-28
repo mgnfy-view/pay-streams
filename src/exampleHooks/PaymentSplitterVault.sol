@@ -15,7 +15,8 @@ contract PaymentSplitterVault is BaseVault {
     address private s_payStreams;
     address[] private s_recipients;
 
-    event PaymentSplit(uint256 amount, address[] recipients);
+    event PaymentSplit(uint256 indexed amount, address[] indexed recipients);
+    event RecipientListUpdated(address[] indexed recipients);
 
     constructor(address _payStreams, address[] memory _recipients) {
         s_payStreams = _payStreams;
@@ -33,5 +34,11 @@ contract PaymentSplitterVault is BaseVault {
         }
 
         emit PaymentSplit(_amount - _feeAmount, recipients);
+    }
+
+    function updateRecipientList(address[] memory _recipients) external onlyOwner {
+        s_recipients = _recipients;
+
+        emit RecipientListUpdated(_recipients);
     }
 }
