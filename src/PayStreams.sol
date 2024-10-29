@@ -289,7 +289,7 @@ contract PayStreams is Ownable, IPayStreams {
             IHooks(streamData.streamerVault).beforeStreamClosed(_streamHash);
         }
 
-        delete s_streamData[_streamHash];
+        s_streamData[_streamHash].amount = 0;
 
         if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamClosed) {
             IHooks(streamData.streamerVault).afterStreamClosed(_streamHash);
