@@ -8,6 +8,12 @@ import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 import { IHooks } from "../interfaces/IHooks.sol";
 
+/**
+ * @title BaseVault.
+ * @author mgnfy-view.
+ * @notice This base vault implementation can be extended by developers to build various
+ * plugins on top of the payStreams using hooks.
+ */
 abstract contract BaseVault is Ownable, IHooks {
     using SafeERC20 for IERC20;
 
@@ -31,6 +37,11 @@ abstract contract BaseVault is Ownable, IHooks {
 
     function afterStreamClosed(bytes32 _streamHash) external virtual { }
 
+    /**
+     * @notice Allows the owner to collect funds from the vault.
+     * @param _token The token to be collected.
+     * @param _amount The amount of token to be collected.
+     */
     function collectFunds(address _token, uint256 _amount) external onlyOwner {
         if (IERC20(_token).balanceOf(address(this)) < _amount) revert BaseVault__InsufficientFunds();
 

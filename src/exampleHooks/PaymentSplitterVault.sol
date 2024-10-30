@@ -9,6 +9,12 @@ import { IPayStreams } from "../interfaces/IPayStreams.sol";
 
 import { BaseVault } from "../utils/BaseVault.sol";
 
+/**
+ * @title PaymentSplitterVault.
+ * @author mgnfy-view.
+ * @notice A payment splitter vault that splits any streamed payment among a
+ * list of recipients.
+ */
 contract PaymentSplitterVault is BaseVault {
     using SafeERC20 for IERC20;
 
@@ -30,6 +36,13 @@ contract PaymentSplitterVault is BaseVault {
         s_recipients = _recipients;
     }
 
+    /**
+     * @notice Once funds have been received by this vault, this function is invoked by the
+     * payStreams contract to split the streamed funds among multiple recipients.
+     * @param _streamHash The hash of the stream.
+     * @param _amount The amount along with the fee.
+     * @param _feeAmount The fee collected from the streamed amount.
+     */
     function afterFundsCollected(
         bytes32 _streamHash,
         uint256 _amount,
@@ -51,6 +64,10 @@ contract PaymentSplitterVault is BaseVault {
         emit PaymentSplit(_amount - _feeAmount, recipients);
     }
 
+    /**
+     * @notice Allows the owner to update the recipient list.
+     * @param _recipients The new list of recipients.
+     */
     function updateRecipientList(address[] memory _recipients) external onlyOwner {
         s_recipients = _recipients;
 
