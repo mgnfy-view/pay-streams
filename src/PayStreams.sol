@@ -196,7 +196,7 @@ contract PayStreams is Ownable, IPayStreams {
             IHooks(streamData.streamerVault).beforeFundsCollected(_streamHash, amountToCollect, feeAmount);
         }
         if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeFundsCollected) {
-            IHooks(streamData.streamerVault).beforeFundsCollected(_streamHash, amountToCollect, feeAmount);
+            IHooks(streamData.recipientVault).beforeFundsCollected(_streamHash, amountToCollect, feeAmount);
         }
 
         s_collectedFees[streamData.token] += feeAmount;
@@ -226,7 +226,7 @@ contract PayStreams is Ownable, IPayStreams {
             IHooks(streamData.streamerVault).afterFundsCollected(_streamHash, amountToCollect, feeAmount);
         }
         if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterFundsCollected) {
-            IHooks(streamData.streamerVault).afterFundsCollected(_streamHash, amountToCollect, feeAmount);
+            IHooks(streamData.recipientVault).afterFundsCollected(_streamHash, amountToCollect, feeAmount);
         }
 
         emit FundsCollectedFromStream(_streamHash, amountToCollect);
@@ -257,6 +257,10 @@ contract PayStreams is Ownable, IPayStreams {
 
         if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeFundsCollected) {
             IHooks(streamData.streamerVault).beforeStreamUpdated(_streamHash);
+        }
+
+        if (_amount < streamData.totalStreamed || _startingTimestamp < block.timestamp || _duration == 0) {
+            revert PayStreams__InvalidUpdateParams();
         }
 
         s_streamData[_streamHash].amount = _amount;
