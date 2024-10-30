@@ -1,11 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
+import { IERC20 } from "@openzeppelin/token/ERC20/IERC20.sol";
+
 import { Ownable } from "@openzeppelin/access/Ownable.sol";
+import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 import { IHooks } from "../interfaces/IHooks.sol";
 
 abstract contract BaseVault is Ownable, IHooks {
+    using SafeERC20 for IERC20;
+
+    event FundsCollected(address indexed token, uint256 indexed amount);
+
+    error BaseVault__InsufficientFunds();
+
     constructor() Ownable(msg.sender) { }
 
     function afterStreamCreated(bytes32 _streamHash) external virtual { }
@@ -21,4 +30,12 @@ abstract contract BaseVault is Ownable, IHooks {
     function beforeStreamClosed(bytes32 _streamHash) external virtual { }
 
     function afterStreamClosed(bytes32 _streamHash) external virtual { }
+
+    function collectFunds(address _token, uint256 _amount) external onlyOwner {
+        if (IERC20(_token).balanceOf(address(this)) < _amount) revert BaseVault__InsufficientFunds();
+
+        IERC20(_token).safeTransfer(msg.sender, _amount);
+
+        emit FundsCollected(_token, _amount);
+    }
 }
