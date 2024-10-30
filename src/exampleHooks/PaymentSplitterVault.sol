@@ -18,12 +18,27 @@ contract PaymentSplitterVault is BaseVault {
     event PaymentSplit(uint256 indexed amount, address[] indexed recipients);
     event RecipientListUpdated(address[] indexed recipients);
 
+    error PaymentSplitterVault__NotPayStream();
+
+    modifier onlyPayStreams() {
+        if (msg.sender != address(s_payStreams)) revert PaymentSplitterVault__NotPayStream();
+        _;
+    }
+
     constructor(address _payStreams, address[] memory _recipients) {
         s_payStreams = _payStreams;
         s_recipients = _recipients;
     }
 
-    function afterFundsCollected(bytes32 _streamHash, uint256 _amount, uint256 _feeAmount) external override {
+    function afterFundsCollected(
+        bytes32 _streamHash,
+        uint256 _amount,
+        uint256 _feeAmount
+    )
+        external
+        override
+        onlyPayStreams
+    {
         address token = IPayStreams(s_payStreams).getStreamData(_streamHash).token;
         address[] memory recipients = s_recipients;
         uint256 numberOfRecipients = recipients.length;
