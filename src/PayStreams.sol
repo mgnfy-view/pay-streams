@@ -25,10 +25,6 @@ contract PayStreams is Ownable, IPayStreams {
      */
     uint16 private s_feeInBasisPoints;
     /**
-     * @dev Only supported tokens can be streamed. PYUSD should be supported for the PYUSD hackathon.
-     */
-    mapping(address token => bool isSupported) private s_supportedTokens;
-    /**
      * @dev Any fees collected from streaming is stored in the contract and tracked by this mapping.
      */
     mapping(address token => uint256 collectedFees) private s_collectedFees;
@@ -76,31 +72,12 @@ contract PayStreams is Ownable, IPayStreams {
      * @param _amount The amount of collected fees to withdraw.
      */
     function collectFees(address _token, uint256 _amount) external onlyOwner {
-        if (!s_supportedTokens[_token]) revert PayStreams__UnsupportedToken(_token);
         if (s_collectedFees[_token] < _amount) revert PayStreams__InsufficientCollectedFees();
 
         s_collectedFees[_token] -= _amount;
         IERC20(_token).safeTransfer(msg.sender, _amount);
 
         emit FeesCollected(_token, _amount);
-    }
-
-    /**
-     * @notice Allows the owner to support or revoke support from tokens for streaming.
-     * @param _token The address of the token.
-     * @param _support A boolean indicating whether to support the token or revoke
-     * support from the token.
-     */
-    function setToken(address _token, bool _support) external onlyOwner {
-        if (_token == address(0)) revert PayStreams__AddressZero();
-
-        if (_support) {
-            s_supportedTokens[_token] = true;
-        } else {
-            s_supportedTokens[_token] = false;
-        }
-
-        emit TokenSet(_token, _support);
     }
 
     /**
@@ -121,8 +98,8 @@ contract PayStreams is Ownable, IPayStreams {
     {
         if (
             _streamData.streamer != msg.sender || _streamData.recipient == address(0)
-                || _streamData.recipientVault != address(0) || !s_supportedTokens[_streamData.token]
-                || _streamData.amount == 0 || _streamData.startingTimestamp < block.timestamp || _streamData.duration == 0
+                || _streamData.recipientVault != address(0) || _streamData.amount == 0
+                || _streamData.startingTimestamp < block.timestamp || _streamData.duration == 0
                 || _streamData.totalStreamed != 0
         ) revert PayStreams__InvalidStreamConfig();
 
@@ -311,15 +288,6 @@ contract PayStreams is Ownable, IPayStreams {
      */
     function getFeeInBasisPoints() external view returns (uint16) {
         return s_feeInBasisPoints;
-    }
-
-    /**
-     * @notice Checks if the given token is supported for streaming or not.
-     * @param _token The address of the token.
-     * @return A boolean indicating whether the token is supported or not.
-     */
-    function isSupportedToken(address _token) external view returns (bool) {
-        return s_supportedTokens[_token];
     }
 
     /**

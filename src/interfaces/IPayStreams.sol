@@ -81,7 +81,6 @@ interface IPayStreams {
 
     function setFeeInBasisPoints(uint16 _feeInBasisPoints) external;
     function collectFees(address _token, uint256 _amount) external;
-    function setToken(address _token, bool _support) external;
     function setStream(
         StreamData calldata _streamData,
         HookConfig calldata _streamerHookConfig,
@@ -102,7 +101,6 @@ interface IPayStreams {
         external;
     function cancelStream(bytes32 _streamHash) external;
     function getFeeInBasisPoints() external view returns (uint16);
-    function isSupportedToken(address _token) external view returns (bool);
     function getCollectedFees(address _token) external view returns (uint256);
     function getStreamData(bytes32 _streamHash) external view returns (StreamData memory);
     function getHookConfig(address _user, bytes32 _streamHash) external view returns (HookConfig memory);
