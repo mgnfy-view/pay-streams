@@ -54,9 +54,10 @@ contract PayStreams is Ownable, IPayStreams {
      * @notice Initializes the owner and the fee value in basis points.
      * @param _feeInBasisPoints The fee value in basis points.
      */
-    constructor(uint16 _feeInBasisPoints) Ownable(msg.sender) {
+    constructor(uint16 _feeInBasisPoints, uint256 _gasLimitForHooks) Ownable(msg.sender) {
         if (_feeInBasisPoints > BASIS_POINTS) revert PayStreams__InvalidFeeInBasisPoints(_feeInBasisPoints);
         s_feeInBasisPoints = _feeInBasisPoints;
+        s_gasLimitForHooks = _gasLimitForHooks;
     }
 
     /**
@@ -68,6 +69,17 @@ contract PayStreams is Ownable, IPayStreams {
         s_feeInBasisPoints = _feeInBasisPoints;
 
         emit FeeInBasisPointsSet(_feeInBasisPoints);
+    }
+
+    /**
+     * @notice Allows the owner to set the gas limit for hooks.
+     * @param _gasLimitForHooks The gas limit for hooks.
+     */
+    function setGasLimitForHooks(uint16 _gasLimitForHooks) external onlyOwner {
+        if (_gasLimitForHooks == 0) revert PayStreams__GasLimitZero();
+        s_gasLimitForHooks = _gasLimitForHooks;
+
+        emit GasLimitForHooksSet(_gasLimitForHooks);
     }
 
     /**
@@ -354,6 +366,14 @@ contract PayStreams is Ownable, IPayStreams {
      */
     function getRecipientStreamHashes(address _recipient) external view returns (bytes32[] memory) {
         return s_recipientToStreamHashes[_recipient];
+    }
+
+    /**
+     * @notice Gets the gas limit for hooks.
+     * @return The gas limit for hooks.
+     */
+    function getGasLimitForHooks() external view returns (uint256) {
+        return s_gasLimitForHooks;
     }
 
     /**

@@ -64,6 +64,7 @@ interface IPayStreams {
 
     event FeeRecipientSet(address indexed newFeeRecipient);
     event FeeInBasisPointsSet(uint16 indexed _feeInBasisPoints);
+    event GasLimitForHooksSet(uint256 gasLimitForHooks);
     event TokenSet(address indexed token, bool indexed support);
     event StreamCreated(bytes32 indexed streamHash);
     event FeesCollected(address indexed token, uint256 indexed amount);
@@ -84,6 +85,7 @@ interface IPayStreams {
 
     error PayStreams__AddressZero();
     error PayStreams__InvalidFeeInBasisPoints(uint16 feeInBasisPoints);
+    error PayStreams__GasLimitZero();
     error PayStreams__InsufficientCollectedFees();
     error PayStreams__InvalidStreamConfig();
     error PayStreams__StreamAlreadyExists(bytes32 streamHash);
@@ -93,6 +95,7 @@ interface IPayStreams {
     error PayStreams__ZeroAmountToCollect();
 
     function setFeeInBasisPoints(uint16 _feeInBasisPoints) external;
+    function setGasLimitForHooks(uint16 _gasLimitForHooks) external;
     function collectFees(address _token, uint256 _amount) external;
     function setStream(
         StreamData calldata _streamData,
