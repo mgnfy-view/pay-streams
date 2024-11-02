@@ -15,7 +15,6 @@ contract DeployPayStreams is Script {
 
         vm.startBroadcast();
         PayStreams stream = new PayStreams(feeInBasisPoints);
-        stream.setToken(pyusd, true);
         vm.stopBroadcast();
 
         return address(stream);
