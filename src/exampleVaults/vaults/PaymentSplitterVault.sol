@@ -58,13 +58,12 @@ contract PaymentSplitterVault is BaseVault {
      * @notice Once funds have been received by this vault, this function is invoked by the
      * payStreams contract to split the streamed funds among multiple recipients based on their weight.
      * @param _streamHash The hash of the stream.
-     * @param _amount The amount along with the fee.
-     * @param _feeAmount The fee collected from the streamed amount.
+     * @param _amount The amount to received from stream.
      */
     function afterFundsCollected(
         bytes32 _streamHash,
         uint256 _amount,
-        uint256 _feeAmount
+        uint256 /* _feeAmount */
     )
         external
         override
@@ -78,7 +77,7 @@ contract PaymentSplitterVault is BaseVault {
         uint256[] memory amounts = new uint256[](numberOfRecipients);
 
         for (uint256 i; i < numberOfRecipients; ++i) {
-            uint256 amount = ((_amount - _feeAmount) * weights[i]) / totalWeight;
+            uint256 amount = (_amount * weights[i]) / totalWeight;
             amounts[i] = amount;
             IERC20(token).safeTransfer(recipients[i], amount);
         }

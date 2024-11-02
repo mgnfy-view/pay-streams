@@ -11,6 +11,7 @@ contract DeployPayStreams is Script {
     uint256[] public weights;
 
     function run() external returns (address) {
+        // Use correct addresses here! These are just placeholders
         stream = 0xfD3c782Ae7Ab6950409C65ba839349F5C0B32f19;
         recipients.push(0xa15C94e0b133111878EA3256aBd5dF22E50B7240);
         recipients.push(0x54D946760093fd5756c3EA4b9CCAE047c0ad4411);
