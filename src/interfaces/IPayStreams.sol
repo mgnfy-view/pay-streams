@@ -55,6 +55,13 @@ interface IPayStreams {
         bool callAfterStreamClosed;
     }
 
+    struct UpdateConfig {
+        bool updateAmount;
+        bool updateStartingTimestamp;
+        bool updateDuration;
+        bool updateRecurring;
+    }
+
     event FeeRecipientSet(address indexed newFeeRecipient);
     event FeeInBasisPointsSet(uint16 indexed _feeInBasisPoints);
     event TokenSet(address indexed token, bool indexed support);
@@ -62,15 +69,21 @@ interface IPayStreams {
     event FeesCollected(address indexed token, uint256 indexed amount);
     event VaultSet(address indexed by, bytes32 indexed streamHash, address indexed vault);
     event HookConfigSet(address indexed by, bytes32 indexed streamHash);
-    event FundsCollectedFromStream(bytes32 indexed streamHash, uint256 indexed amountToCollect);
+    event FundsCollectedFromStream(
+        bytes32 indexed streamHash, uint256 indexed amountToCollect, uint256 indexed feeAmount
+    );
     event StreamUpdated(
-        bytes32 indexed streamHash, uint256 amount, uint256 startingTimestamp, uint256 duration, bool recurring
+        bytes32 indexed streamHash,
+        uint256 amount,
+        uint256 startingTimestamp,
+        uint256 duration,
+        bool recurring,
+        UpdateConfig updateConfig
     );
     event StreamCancelled(bytes32 indexed streamHash);
 
     error PayStreams__AddressZero();
     error PayStreams__InvalidFeeInBasisPoints(uint16 feeInBasisPoints);
-    error PayStreams__UnsupportedToken(address token);
     error PayStreams__InsufficientCollectedFees();
     error PayStreams__InvalidStreamConfig();
     error PayStreams__StreamAlreadyExists(bytes32 streamHash);
@@ -84,7 +97,7 @@ interface IPayStreams {
     function setStream(
         StreamData calldata _streamData,
         HookConfig calldata _streamerHookConfig,
-        string memory _tag
+        string calldata _tag
     )
         external
         returns (bytes32);
@@ -96,7 +109,8 @@ interface IPayStreams {
         uint256 _amount,
         uint256 _startingTimestamp,
         uint256 _duration,
-        bool _recurring
+        bool _recurring,
+        UpdateConfig calldata _updateConfig
     )
         external;
     function cancelStream(bytes32 _streamHash) external;
@@ -110,7 +124,7 @@ interface IPayStreams {
         address _streamer,
         address _recipient,
         address _token,
-        string memory _tag
+        string calldata _tag
     )
         external
         pure

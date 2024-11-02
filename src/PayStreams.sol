@@ -45,6 +45,10 @@ contract PayStreams is Ownable, IPayStreams {
      * @dev Utility storage for the recipient's stream hashes.
      */
     mapping(address recipient => bytes32[] streamHashes) private s_recipientToStreamHashes;
+    /**
+     * @dev The maximum gas that a hook can use. This prevents gas griefing attacks.
+     */
+    uint256 private s_gasLimitForHooks;
 
     /**
      * @notice Initializes the owner and the fee value in basis points.
@@ -91,7 +95,7 @@ contract PayStreams is Ownable, IPayStreams {
     function setStream(
         StreamData calldata _streamData,
         HookConfig calldata _streamerHookConfig,
-        string memory _tag
+        string calldata _tag
     )
         external
         returns (bytes32)
@@ -111,7 +115,7 @@ contract PayStreams is Ownable, IPayStreams {
         s_hookConfig[msg.sender][streamHash] = _streamerHookConfig;
 
         if (_streamData.streamerVault != address(0) && _streamerHookConfig.callAfterStreamCreated) {
-            IHooks(_streamData.streamerVault).afterStreamCreated(streamHash);
+            IHooks(_streamData.streamerVault).afterStreamCreated{ gas: s_gasLimitForHooks }(streamHash);
         }
 
         emit StreamCreated(streamHash);
@@ -120,7 +124,7 @@ contract PayStreams is Ownable, IPayStreams {
     }
 
     /**
-     * @notice Allows the streamer or recipient of a stream to set their vaults.
+     * @notice Allows the streamer or recipient of a stream to set their respective vaults.
      * @dev Hooks can only be called on correctly configured and set vaults (both on streamer's
      * and recipient's end).
      * @param _streamHash The hash of the stream.
@@ -152,11 +156,12 @@ contract PayStreams is Ownable, IPayStreams {
     }
 
     /**
-     * @notice Allows the recipient to collect funds from a stream.
+     * @notice Allows the recipient to collect funds from a stream. Can be called by anyone.
      * @param _streamHash The hash of the stream.
      */
     function collectFundsFromStream(bytes32 _streamHash) external {
         StreamData memory streamData = s_streamData[_streamHash];
+        uint256 gasLimitForHooks = s_gasLimitForHooks;
 
         if (streamData.startingTimestamp > block.timestamp) {
             revert PayStreams__StreamHasNotStartedYet(_streamHash, streamData.startingTimestamp);
@@ -170,43 +175,45 @@ contract PayStreams is Ownable, IPayStreams {
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
 
         if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeFundsCollected) {
-            IHooks(streamData.streamerVault).beforeFundsCollected(_streamHash, amountToCollect, feeAmount);
+            IHooks(streamData.streamerVault).beforeFundsCollected{ gas: gasLimitForHooks }(
+                _streamHash, amountToCollect, feeAmount
+            );
         }
         if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeFundsCollected) {
-            IHooks(streamData.recipientVault).beforeFundsCollected(_streamHash, amountToCollect, feeAmount);
+            IHooks(streamData.recipientVault).beforeFundsCollected{ gas: gasLimitForHooks }(
+                _streamHash, amountToCollect, feeAmount
+            );
         }
 
         s_collectedFees[streamData.token] += feeAmount;
         if (streamData.streamerVault != address(0)) {
             streamData.recipientVault != address(0)
                 ? IERC20(streamData.token).safeTransferFrom(
-                    streamData.streamerVault, streamData.recipientVault, amountToCollect - feeAmount
+                    streamData.streamerVault, streamData.recipientVault, amountToCollect
                 )
-                : IERC20(streamData.token).safeTransferFrom(
-                    streamData.streamerVault, streamData.recipient, amountToCollect - feeAmount
-                );
+                : IERC20(streamData.token).safeTransferFrom(streamData.streamerVault, streamData.recipient, amountToCollect);
 
             IERC20(streamData.token).safeTransferFrom(streamData.streamerVault, address(this), feeAmount);
         } else {
             streamData.recipientVault != address(0)
-                ? IERC20(streamData.token).safeTransferFrom(
-                    streamData.streamer, streamData.recipientVault, amountToCollect - feeAmount
-                )
-                : IERC20(streamData.token).safeTransferFrom(
-                    streamData.streamer, streamData.recipient, amountToCollect - feeAmount
-                );
+                ? IERC20(streamData.token).safeTransferFrom(streamData.streamer, streamData.recipientVault, amountToCollect)
+                : IERC20(streamData.token).safeTransferFrom(streamData.streamer, streamData.recipient, amountToCollect);
 
             IERC20(streamData.token).safeTransferFrom(streamData.streamer, address(this), feeAmount);
         }
 
         if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterFundsCollected) {
-            IHooks(streamData.streamerVault).afterFundsCollected(_streamHash, amountToCollect, feeAmount);
+            IHooks(streamData.streamerVault).afterFundsCollected{ gas: gasLimitForHooks }(
+                _streamHash, amountToCollect, feeAmount
+            );
         }
         if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterFundsCollected) {
-            IHooks(streamData.recipientVault).afterFundsCollected(_streamHash, amountToCollect, feeAmount);
+            IHooks(streamData.recipientVault).afterFundsCollected{ gas: gasLimitForHooks }(
+                _streamHash, amountToCollect, feeAmount
+            );
         }
 
-        emit FundsCollectedFromStream(_streamHash, amountToCollect);
+        emit FundsCollectedFromStream(_streamHash, amountToCollect, feeAmount);
     }
 
     /**
@@ -222,37 +229,46 @@ contract PayStreams is Ownable, IPayStreams {
         uint256 _amount,
         uint256 _startingTimestamp,
         uint256 _duration,
-        bool _recurring
+        bool _recurring,
+        UpdateConfig calldata _updateConfig
     )
         external
     {
         StreamData memory streamData = s_streamData[_streamHash];
+        uint256 gasLimitForHooks = s_gasLimitForHooks;
         if (msg.sender != streamData.streamer) revert PayStreams__Unauthorized();
 
         HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
 
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeFundsCollected) {
-            IHooks(streamData.streamerVault).beforeStreamUpdated(_streamHash);
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamUpdated) {
+            IHooks(streamData.streamerVault).beforeStreamUpdated{ gas: gasLimitForHooks }(_streamHash);
+        }
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeStreamUpdated) {
+            IHooks(streamData.recipientVault).beforeStreamUpdated{ gas: gasLimitForHooks }(_streamHash);
         }
 
-        if (_amount < streamData.totalStreamed || _startingTimestamp < block.timestamp || _duration == 0) {
+        if (
+            (_updateConfig.updateAmount && _amount < streamData.totalStreamed)
+                || (_updateConfig.updateStartingTimestamp && _startingTimestamp < block.timestamp)
+                || (_updateConfig.updateDuration && _duration == 0)
+        ) {
             revert PayStreams__InvalidUpdateParams();
         }
 
-        s_streamData[_streamHash].amount = _amount;
-        s_streamData[_streamHash].startingTimestamp = _startingTimestamp;
-        s_streamData[_streamHash].duration = _duration;
-        s_streamData[_streamHash].recurring = _recurring;
+        if (_updateConfig.updateAmount) s_streamData[_streamHash].amount = _amount;
+        if (_updateConfig.updateStartingTimestamp) s_streamData[_streamHash].startingTimestamp = _startingTimestamp;
+        if (_updateConfig.updateDuration) s_streamData[_streamHash].duration = _duration;
+        if (_updateConfig.updateRecurring) s_streamData[_streamHash].recurring = _recurring;
 
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamClosed) {
-            IHooks(streamData.streamerVault).afterStreamUpdated(_streamHash);
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamUpdated) {
+            IHooks(streamData.streamerVault).afterStreamUpdated{ gas: gasLimitForHooks }(_streamHash);
         }
-        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamClosed) {
-            IHooks(streamData.recipientVault).afterStreamUpdated(_streamHash);
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamUpdated) {
+            IHooks(streamData.recipientVault).afterStreamUpdated{ gas: gasLimitForHooks }(_streamHash);
         }
 
-        emit StreamUpdated(_streamHash, _amount, _startingTimestamp, _duration, _recurring);
+        emit StreamUpdated(_streamHash, _amount, _startingTimestamp, _duration, _recurring, _updateConfig);
     }
 
     /**
@@ -261,22 +277,26 @@ contract PayStreams is Ownable, IPayStreams {
      */
     function cancelStream(bytes32 _streamHash) external {
         StreamData memory streamData = s_streamData[_streamHash];
+        uint256 gasLimitForHooks = s_gasLimitForHooks;
         if (msg.sender != streamData.streamer) revert PayStreams__Unauthorized();
 
         HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
 
         if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamClosed) {
-            IHooks(streamData.streamerVault).beforeStreamClosed(_streamHash);
+            IHooks(streamData.streamerVault).beforeStreamClosed{ gas: gasLimitForHooks }(_streamHash);
+        }
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeStreamClosed) {
+            IHooks(streamData.recipientVault).beforeStreamClosed{ gas: gasLimitForHooks }(_streamHash);
         }
 
         s_streamData[_streamHash].amount = 0;
 
         if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamClosed) {
-            IHooks(streamData.streamerVault).afterStreamClosed(_streamHash);
+            IHooks(streamData.streamerVault).afterStreamClosed{ gas: gasLimitForHooks }(_streamHash);
         }
         if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamClosed) {
-            IHooks(streamData.recipientVault).afterStreamClosed(_streamHash);
+            IHooks(streamData.recipientVault).afterStreamClosed{ gas: gasLimitForHooks }(_streamHash);
         }
 
         emit StreamCancelled(_streamHash);
@@ -348,7 +368,7 @@ contract PayStreams is Ownable, IPayStreams {
         address _streamer,
         address _recipient,
         address _token,
-        string memory _tag
+        string calldata _tag
     )
         public
         pure
@@ -357,6 +377,12 @@ contract PayStreams is Ownable, IPayStreams {
         return keccak256(abi.encode(_streamer, _recipient, _token, _tag));
     }
 
+    /**
+     * @notice Gets the amount withdrawable from the stream as well as the fee amount.
+     * @param _streamHash The hash of the stream.
+     * @return The amount of funds withdrawable from the stream.
+     * @return The fee amount applied to the withdrawable funds.
+     */
     function getAmountToCollectFromStreamAndFeeToPay(bytes32 _streamHash) public view returns (uint256, uint256) {
         StreamData memory streamData = s_streamData[_streamHash];
 
@@ -367,6 +393,8 @@ contract PayStreams is Ownable, IPayStreams {
         ) - streamData.totalStreamed;
         if (amountToCollect > streamData.amount && !streamData.recurring) {
             amountToCollect = streamData.amount - streamData.totalStreamed;
+        } else if (amountToCollect > streamData.amount && streamData.recurring) {
+            amountToCollect -= streamData.totalStreamed;
         }
         uint256 feeAmount = (amountToCollect * s_feeInBasisPoints) / BASIS_POINTS;
 
