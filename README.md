@@ -16,7 +16,7 @@
   <h3 align="center">PayStreams</h3>
 
   <p align="center">
-    PayStreams is a payment streaming service leveraging PyUSD, supercharged with hooks
+    PayStreams is a payment streaming service leveraging PYUSD, supercharged with hooks
     <br />
     <a href="https://github.com/mgnfy-view/pay-streams/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
