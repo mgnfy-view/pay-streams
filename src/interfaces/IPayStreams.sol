@@ -95,7 +95,7 @@ interface IPayStreams {
     error PayStreams__ZeroAmountToCollect();
 
     function setFeeInBasisPoints(uint16 _feeInBasisPoints) external;
-    function setGasLimitForHooks(uint16 _gasLimitForHooks) external;
+    function setGasLimitForHooks(uint256 _gasLimitForHooks) external;
     function collectFees(address _token, uint256 _amount) external;
     function setStream(
         StreamData calldata _streamData,

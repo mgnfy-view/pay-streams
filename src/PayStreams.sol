@@ -75,7 +75,7 @@ contract PayStreams is Ownable, IPayStreams {
      * @notice Allows the owner to set the gas limit for hooks.
      * @param _gasLimitForHooks The gas limit for hooks.
      */
-    function setGasLimitForHooks(uint16 _gasLimitForHooks) external onlyOwner {
+    function setGasLimitForHooks(uint256 _gasLimitForHooks) external onlyOwner {
         if (_gasLimitForHooks == 0) revert PayStreams__GasLimitZero();
         s_gasLimitForHooks = _gasLimitForHooks;
 
