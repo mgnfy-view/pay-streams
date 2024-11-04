@@ -4,61 +4,112 @@ pragma solidity 0.8.24;
 interface IPayStreams {
     /**
      * @notice The stream details struct.
-     * @param streamer The address of the streamer.
-     * @param streamerVault The address of the streamer's vault.
-     * @param recipient The address of the recipient.
-     * @param recipientVault The address of the recipient's vault.
-     * @param token The address of the token to stream.
-     * @param amount The amount of the token to stream.
-     * @param startingTimestamp The timestamp when the stream begins.
-     * @param duration The duration for which the stream lasts.
-     * @param totalStreamed The total amount collected by recipient from the stream.
-     * @param recurring A bool indicating if the stream is recurring or one-time only.
      */
     struct StreamData {
+        /**
+         * @dev The address of the streamer.
+         */
         address streamer;
+        /**
+         * @dev The address of the streamer's vault.
+         */
         address streamerVault;
+        /**
+         * @dev The address of the recipient.
+         */
         address recipient;
+        /**
+         * @dev The address of the recipient's vault.
+         */
         address recipientVault;
+        /**
+         * @dev The address of the token to stream.
+         */
         address token;
+        /**
+         * @dev The amount of the token to stream.
+         */
         uint256 amount;
+        /**
+         * @dev The timestamp when the stream begins.
+         */
         uint256 startingTimestamp;
+        /**
+         * @dev The duration for which the stream lasts.
+         */
         uint256 duration;
+        /**
+         * @dev The total amount collected by recipient from the stream.
+         */
         uint256 totalStreamed;
+        /**
+         * @dev A bool indicating if the stream is recurring or one-time only.
+         */
         bool recurring;
     }
 
     /**
      * @notice The hook configuration details struct for both streamer and recipient.
-     * @param callAfterStreamCreated If set, the afterStreamCreated() function will be called on
-     * the user's vault (if it isn't address(0)).
-     * @param callBeforeFundsCollected If set, the beforeFundsCollected() function will be called on
-     * the user's vault (if it isn't address(0)).
-     * @param callAfterFundsCollected If set, the afterFundsCollected() function will be called on
-     * the user's vault (if it isn't address(0)).
-     * @param callBeforeStreamUpdated If set, the beforeStreamUpdated() function will be called on
-     * the user's vault (if it isn't address(0)).
-     * @param callAfterStreamUpdated If set, the afterStreamUpdated() function will be called on
-     * the user's vault (if it isn't address(0)).
-     * @param callBeforeStreamClosed If set, the beforeStreamClosed() function will be called on
-     * the user's vault (if it isn't address(0)).
-     * @param callAfterStreamClosed If set, the afterStreamClosed() function will be called on
-     * the user's vault (if it isn't address(0)).
      */
     struct HookConfig {
+        /**
+         * @dev If set, the afterStreamCreated() function will be called on
+         * the user's vault (if it isn't address(0)).
+         */
         bool callAfterStreamCreated;
+        /**
+         * @dev If set, the beforeFundsCollected() function will be called on
+         * the user's vault (if it isn't address(0)).
+         */
         bool callBeforeFundsCollected;
+        /**
+         * @dev If set, the afterFundsCollected() function will be called on
+         * the user's vault (if it isn't address(0)).
+         */
         bool callAfterFundsCollected;
+        /**
+         * @dev If set, the beforeStreamUpdated() function will be called on
+         * the user's vault (if it isn't address(0)).
+         */
         bool callBeforeStreamUpdated;
+        /**
+         * @dev If set, the afterStreamUpdated() function will be called on
+         * the user's vault (if it isn't address(0)).
+         */
         bool callAfterStreamUpdated;
+        /**
+         * @dev If set, the beforeStreamClosed() function will be called on
+         * the user's vault (if it isn't address(0)).
+         */
         bool callBeforeStreamClosed;
+        /**
+         * @dev If set, the afterStreamClosed() function will be called on
+         * the user's vault (if it isn't address(0)).
+         */
         bool callAfterStreamClosed;
     }
 
+    /**
+     * @notice The update function can update all the 4 params - amount, starting timestamp,
+     * duration, and the recurring variable. Flags must be passed to indicate which values
+     * to update and which to ignore.
+     */
     struct UpdateConfig {
+        /**
+         * @dev A boolean indicating whether to update the amount or not.
+         */
         bool updateAmount;
+        /**
+         * @dev A boolean indicating whether to update the starting timestamp or not.
+         */
         bool updateStartingTimestamp;
+        /**
+         * @dev A boolean indicating whether to update the duration or not.
+         */
         bool updateDuration;
+        /**
+         * @dev A boolean indicating whether to update the recurring variable or not.
+         */
         bool updateRecurring;
     }
 
