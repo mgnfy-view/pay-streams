@@ -6,45 +6,25 @@ interface IPayStreams {
      * @notice The stream details struct.
      */
     struct StreamData {
-        /**
-         * @dev The address of the streamer.
-         */
+        /// @dev The address of the streamer.
         address streamer;
-        /**
-         * @dev The address of the streamer's vault.
-         */
+        /// @dev The address of the streamer's vault.
         address streamerVault;
-        /**
-         * @dev The address of the recipient.
-         */
+        /// @dev The address of the recipient.
         address recipient;
-        /**
-         * @dev The address of the recipient's vault.
-         */
+        /// @dev The address of the recipient's vault.
         address recipientVault;
-        /**
-         * @dev The address of the token to stream.
-         */
+        /// @dev The address of the token to stream.
         address token;
-        /**
-         * @dev The amount of the token to stream.
-         */
+        /// @dev The amount of the token to stream.
         uint256 amount;
-        /**
-         * @dev The timestamp when the stream begins.
-         */
+        /// @dev The timestamp when the stream begins.
         uint256 startingTimestamp;
-        /**
-         * @dev The duration for which the stream lasts.
-         */
+        /// @dev The duration for which the stream lasts.
         uint256 duration;
-        /**
-         * @dev The total amount collected by recipient from the stream.
-         */
+        /// @dev The total amount collected by recipient from the stream.
         uint256 totalStreamed;
-        /**
-         * @dev A bool indicating if the stream is recurring or one-time only.
-         */
+        /// @dev A bool indicating if the stream is recurring or one-time only.
         bool recurring;
     }
 
@@ -52,40 +32,26 @@ interface IPayStreams {
      * @notice The hook configuration details struct for both streamer and recipient.
      */
     struct HookConfig {
-        /**
-         * @dev If set, the afterStreamCreated() function will be called on
-         * the user's vault (if it isn't address(0)).
-         */
+        /// @dev If set, the afterStreamCreated() function will be called on
+        /// the user's vault (if it isn't address(0)).
         bool callAfterStreamCreated;
-        /**
-         * @dev If set, the beforeFundsCollected() function will be called on
-         * the user's vault (if it isn't address(0)).
-         */
+        /// @dev If set, the beforeFundsCollected() function will be called on
+        /// the user's vault (if it isn't address(0)).
         bool callBeforeFundsCollected;
-        /**
-         * @dev If set, the afterFundsCollected() function will be called on
-         * the user's vault (if it isn't address(0)).
-         */
+        /// @dev If set, the afterFundsCollected() function will be called on
+        /// the user's vault (if it isn't address(0)).
         bool callAfterFundsCollected;
-        /**
-         * @dev If set, the beforeStreamUpdated() function will be called on
-         * the user's vault (if it isn't address(0)).
-         */
+        /// @dev If set, the beforeStreamUpdated() function will be called on
+        /// the user's vault (if it isn't address(0)).
         bool callBeforeStreamUpdated;
-        /**
-         * @dev If set, the afterStreamUpdated() function will be called on
-         * the user's vault (if it isn't address(0)).
-         */
+        /// @dev If set, the afterStreamUpdated() function will be called on
+        /// the user's vault (if it isn't address(0)).
         bool callAfterStreamUpdated;
-        /**
-         * @dev If set, the beforeStreamClosed() function will be called on
-         * the user's vault (if it isn't address(0)).
-         */
+        /// @dev If set, the beforeStreamClosed() function will be called on
+        /// the user's vault (if it isn't address(0)).
         bool callBeforeStreamClosed;
-        /**
-         * @dev If set, the afterStreamClosed() function will be called on
-         * the user's vault (if it isn't address(0)).
-         */
+        /// @dev If set, the afterStreamClosed() function will be called on
+        /// the user's vault (if it isn't address(0)).
         bool callAfterStreamClosed;
     }
 
@@ -95,21 +61,13 @@ interface IPayStreams {
      * to update and which to ignore.
      */
     struct UpdateConfig {
-        /**
-         * @dev A boolean indicating whether to update the amount or not.
-         */
+        /// @dev A boolean indicating whether to update the amount or not.
         bool updateAmount;
-        /**
-         * @dev A boolean indicating whether to update the starting timestamp or not.
-         */
+        /// @dev A boolean indicating whether to update the starting timestamp or not.
         bool updateStartingTimestamp;
-        /**
-         * @dev A boolean indicating whether to update the duration or not.
-         */
+        /// @dev A boolean indicating whether to update the duration or not.
         bool updateDuration;
-        /**
-         * @dev A boolean indicating whether to update the recurring variable or not.
-         */
+        /// @dev A boolean indicating whether to update the recurring variable or not.
         bool updateRecurring;
     }
 
