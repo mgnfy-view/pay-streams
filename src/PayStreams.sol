@@ -1,3 +1,22 @@
+// Layout:
+//     - pragma
+//     - imports
+//     - interfaces, libraries, contracts
+//     - type declarations
+//     - state variables
+//     - events
+//     - errors
+//     - modifiers
+//     - functions
+//         - constructor
+//         - receive function (if exists)
+//         - fallback function (if exists)
+//         - external
+//         - public
+//         - internal
+//         - private
+//         - view and pure functions
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
@@ -12,42 +31,26 @@ import { IPayStreams } from "./interfaces/IPayStreams.sol";
 /**
  * @title PayStreams.
  * @author mgnfy-view.
- * @notice PayStreams is a payment streamming service leveraging PYUSD (made for the PayPal
- * hackathon), and supercharged with hooks.
+ * @notice PayStreams is a payment streamming service supercharged with hooks.
  */
 contract PayStreams is Ownable, IPayStreams {
     using SafeERC20 for IERC20;
 
     uint16 private constant BASIS_POINTS = 10_000;
 
-    /**
-     * @dev The fee applied on streams in basis points.
-     */
+    /// @dev The fee applied on streams in basis points.
     uint16 private s_feeInBasisPoints;
-    /**
-     * @dev Any fees collected from streaming is stored in the contract and tracked by this mapping.
-     */
+    /// @dev Any fees collected from streams is stored in the contract and tracked by this mapping.
     mapping(address token => uint256 collectedFees) private s_collectedFees;
-
-    /**
-     * @dev Stores stream details.
-     */
+    /// @dev Stores stream details.
     mapping(bytes32 streamHash => StreamData streamData) private s_streamData;
-    /**
-     * @dev Stores the hook configuration for the streamer and the recipient.
-     */
+    /// @dev Stores the hook configuration for the streamer and the recipient.
     mapping(address user => mapping(bytes32 streamHash => HookConfig hookConfig)) private s_hookConfig;
-    /**
-     * @dev Utility storage for the streamer's stream hashes.
-     */
+    /// @dev Utility storage for the streamer's stream hashes.
     mapping(address streamer => bytes32[] streamHashes) private s_streamerToStreamHashes;
-    /**
-     * @dev Utility storage for the recipient's stream hashes.
-     */
+    /// @dev Utility storage for the recipient's stream hashes.
     mapping(address recipient => bytes32[] streamHashes) private s_recipientToStreamHashes;
-    /**
-     * @dev The maximum gas that a hook can use. This prevents gas griefing attacks.
-     */
+    /// @dev The maximum gas that a hook can use. This prevents gas griefing attacks.
     uint256 private s_gasLimitForHooks;
 
     /**
@@ -68,7 +71,7 @@ contract PayStreams is Ownable, IPayStreams {
         if (_feeInBasisPoints > BASIS_POINTS) revert PayStreams__InvalidFeeInBasisPoints(_feeInBasisPoints);
         s_feeInBasisPoints = _feeInBasisPoints;
 
-        emit FeeInBasisPointsSet(_feeInBasisPoints);
+        emit FeeInBasisPointsSet(msg.sender, _feeInBasisPoints);
     }
 
     /**
@@ -79,29 +82,30 @@ contract PayStreams is Ownable, IPayStreams {
         if (_gasLimitForHooks == 0) revert PayStreams__GasLimitZero();
         s_gasLimitForHooks = _gasLimitForHooks;
 
-        emit GasLimitForHooksSet(_gasLimitForHooks);
+        emit GasLimitForHooksSet(msg.sender, _gasLimitForHooks);
     }
 
     /**
-     * @notice Allows the owner to withdraw any collected fees.
+     * @notice Allows the owner to withdraw fees collected from streams.
      * @param _token The address of the token.
      * @param _amount The amount of collected fees to withdraw.
+     * @param _to The recipient of the funds.
      */
-    function collectFees(address _token, uint256 _amount) external onlyOwner {
+    function collectFees(address _token, uint256 _amount, address _to) external onlyOwner {
         if (s_collectedFees[_token] < _amount) revert PayStreams__InsufficientCollectedFees();
 
         s_collectedFees[_token] -= _amount;
-        IERC20(_token).safeTransfer(msg.sender, _amount);
+        IERC20(_token).safeTransfer(_to, _amount);
 
-        emit FeesCollected(_token, _amount);
+        emit FeesCollected(_token, _amount, _to);
     }
 
     /**
-     * @notice Allows anyone to create a stream with custom params and hook configuration.
+     * @notice Allows anyone to create a stream with custom parameters and hook configuration.
      * @param _streamData The stream details.
      * @param _streamerHookConfig The streamer's hook configuration.
-     * @param _tag Salt for stream creation. This will allow to create multiple streams for different
-     * purposes targeted towards the same recipient and the same token.
+     * @param _tag Salt for stream creation. This allows a streamer to create multiple streams for different
+     * purposes targeted towards the same recipient and using the same token.
      * @return The hash of the newly created stream.
      */
     function setStream(
@@ -116,7 +120,7 @@ contract PayStreams is Ownable, IPayStreams {
             _streamData.streamer != msg.sender || _streamData.recipient == address(0)
                 || _streamData.recipientVault != address(0) || _streamData.amount == 0
                 || _streamData.startingTimestamp < block.timestamp || _streamData.duration == 0
-                || _streamData.totalStreamed != 0
+                || _streamData.totalStreamed != 0 || _streamData.lastPausedAt != 0
         ) revert PayStreams__InvalidStreamConfig();
 
         bytes32 streamHash = getStreamHash(msg.sender, _streamData.recipient, _streamData.token, _tag);
@@ -136,38 +140,6 @@ contract PayStreams is Ownable, IPayStreams {
     }
 
     /**
-     * @notice Allows the streamer or recipient of a stream to set their respective vaults.
-     * @dev Hooks can only be called on correctly configured and set vaults (both on streamer's
-     * and recipient's end).
-     * @param _streamHash The hash of the stream.
-     * @param _vault The streamer's or recipient's vault address.
-     */
-    function setVaultForStream(bytes32 _streamHash, address _vault) external {
-        StreamData memory streamData = s_streamData[_streamHash];
-        if (msg.sender != streamData.streamer && msg.sender != streamData.recipient) revert PayStreams__Unauthorized();
-
-        msg.sender == streamData.streamer
-            ? s_streamData[_streamHash].streamerVault = _vault
-            : s_streamData[_streamHash].recipientVault = _vault;
-
-        emit VaultSet(msg.sender, _streamHash, _vault);
-    }
-
-    /**
-     * @notice Allows streamers and recipients to set their hook configuration.
-     * @param _streamHash The hash of the stream.
-     * @param _hookConfig The streamer's or recipient's hook configuration.
-     */
-    function setHookConfigForStream(bytes32 _streamHash, HookConfig calldata _hookConfig) external {
-        StreamData memory streamData = s_streamData[_streamHash];
-        if (msg.sender != streamData.streamer && msg.sender != streamData.recipient) revert PayStreams__Unauthorized();
-
-        s_hookConfig[msg.sender][_streamHash] = _hookConfig;
-
-        emit HookConfigSet(msg.sender, _streamHash);
-    }
-
-    /**
      * @notice Allows the recipient to collect funds from a stream. Can be called by anyone.
      * @param _streamHash The hash of the stream.
      */
@@ -181,7 +153,7 @@ contract PayStreams is Ownable, IPayStreams {
         (uint256 amountToCollect, uint256 feeAmount) = getAmountToCollectFromStreamAndFeeToPay(_streamHash);
         if (amountToCollect == 0) revert PayStreams__ZeroAmountToCollect();
 
-        s_streamData[_streamHash].totalStreamed += amountToCollect;
+        s_streamData[_streamHash].totalStreamed += amountToCollect + feeAmount;
 
         HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
@@ -248,7 +220,15 @@ contract PayStreams is Ownable, IPayStreams {
     {
         StreamData memory streamData = s_streamData[_streamHash];
         uint256 gasLimitForHooks = s_gasLimitForHooks;
-        if (msg.sender != streamData.streamer) revert PayStreams__Unauthorized();
+        _checkIfStreamCreator(streamData);
+
+        if (
+            (_updateConfig.updateAmount && _amount < streamData.totalStreamed)
+                || (_updateConfig.updateStartingTimestamp && _startingTimestamp < block.timestamp)
+                || (_updateConfig.updateDuration && _duration == 0)
+        ) {
+            revert PayStreams__InvalidUpdateParams();
+        }
 
         HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
@@ -258,14 +238,6 @@ contract PayStreams is Ownable, IPayStreams {
         }
         if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeStreamUpdated) {
             IHooks(streamData.recipientVault).beforeStreamUpdated{ gas: gasLimitForHooks }(_streamHash);
-        }
-
-        if (
-            (_updateConfig.updateAmount && _amount < streamData.totalStreamed)
-                || (_updateConfig.updateStartingTimestamp && _startingTimestamp < block.timestamp)
-                || (_updateConfig.updateDuration && _duration == 0)
-        ) {
-            revert PayStreams__InvalidUpdateParams();
         }
 
         if (_updateConfig.updateAmount) s_streamData[_streamHash].amount = _amount;
@@ -284,13 +256,84 @@ contract PayStreams is Ownable, IPayStreams {
     }
 
     /**
+     * @notice Allows a streamer to pause an ongoing stream.
+     * @param _streamHash The hash of the stream.
+     */
+    function pauseStream(bytes32 _streamHash) external {
+        StreamData memory streamData = s_streamData[_streamHash];
+        uint256 gasLimitForHooks = s_gasLimitForHooks;
+        _checkIfStreamCreator(streamData);
+
+        if (
+            block.timestamp < streamData.startingTimestamp
+                || (block.timestamp > streamData.startingTimestamp + streamData.duration && !streamData.recurring)
+        ) revert PayStreams__CannotPauseStream();
+
+        HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
+        HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
+
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamUpdated) {
+            IHooks(streamData.streamerVault).beforeStreamPaused{ gas: gasLimitForHooks }(_streamHash);
+        }
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeStreamUpdated) {
+            IHooks(streamData.recipientVault).beforeStreamPaused{ gas: gasLimitForHooks }(_streamHash);
+        }
+
+        s_streamData[_streamHash].lastPausedAt = block.timestamp;
+
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamUpdated) {
+            IHooks(streamData.streamerVault).afterStreamPaused{ gas: gasLimitForHooks }(_streamHash);
+        }
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamUpdated) {
+            IHooks(streamData.recipientVault).afterStreamPaused{ gas: gasLimitForHooks }(_streamHash);
+        }
+
+        emit StreamPaused(_streamHash);
+    }
+
+    /**
+     * @notice Allows a streamer to unpause a paused stream.
+     * @param _streamHash The hash of the stream.
+     */
+    function unPauseStream(bytes32 _streamHash) external {
+        StreamData memory streamData = s_streamData[_streamHash];
+        uint256 gasLimitForHooks = s_gasLimitForHooks;
+        _checkIfStreamCreator(streamData);
+
+        if (streamData.lastPausedAt == 0) revert PayStreams__NotPaused();
+
+        HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
+        HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
+
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamUpdated) {
+            IHooks(streamData.streamerVault).beforeStreamUnPaused{ gas: gasLimitForHooks }(_streamHash);
+        }
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeStreamUpdated) {
+            IHooks(streamData.recipientVault).beforeStreamUnPaused{ gas: gasLimitForHooks }(_streamHash);
+        }
+
+        s_streamData[_streamHash].startingTimestamp =
+            block.timestamp - (streamData.lastPausedAt - streamData.startingTimestamp);
+        s_streamData[_streamHash].lastPausedAt = 0;
+
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamUpdated) {
+            IHooks(streamData.streamerVault).afterStreamUnPaused{ gas: gasLimitForHooks }(_streamHash);
+        }
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamUpdated) {
+            IHooks(streamData.recipientVault).afterStreamUnPaused{ gas: gasLimitForHooks }(_streamHash);
+        }
+
+        emit StreamUnPaused(_streamHash);
+    }
+
+    /**
      * @notice Allows the creator of a stream to cancel the stream.
      * @param _streamHash The hash of the stream.
      */
     function cancelStream(bytes32 _streamHash) external {
         StreamData memory streamData = s_streamData[_streamHash];
         uint256 gasLimitForHooks = s_gasLimitForHooks;
-        if (msg.sender != streamData.streamer) revert PayStreams__Unauthorized();
+        _checkIfStreamCreator(streamData);
 
         HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
@@ -312,6 +355,61 @@ contract PayStreams is Ownable, IPayStreams {
         }
 
         emit StreamCancelled(_streamHash);
+    }
+
+    function setVaultAndHookConfig(bytes32 _streamHash, address _vault, HookConfig calldata _hookConfig) external {
+        setVault(_streamHash, _vault);
+        setHookConfig(_streamHash, _hookConfig);
+    }
+
+    /**
+     * @notice Allows the streamer or recipient of a stream to set their respective vaults.
+     * @dev Hooks can only be called on correctly configured and set vaults (both on streamer's
+     * and recipient's end).
+     * @param _streamHash The hash of the stream.
+     * @param _vault The streamer's or recipient's vault address.
+     */
+    function setVault(bytes32 _streamHash, address _vault) public {
+        StreamData memory streamData = s_streamData[_streamHash];
+        _checkIfCreatorOrStreamer(streamData);
+
+        msg.sender == streamData.streamer
+            ? s_streamData[_streamHash].streamerVault = _vault
+            : s_streamData[_streamHash].recipientVault = _vault;
+
+        emit VaultSet(msg.sender, _streamHash, _vault);
+    }
+
+    /**
+     * @notice Allows streamers and recipients to set their hook configuration.
+     * @param _streamHash The hash of the stream.
+     * @param _hookConfig The streamer's or recipient's hook configuration.
+     */
+    function setHookConfig(bytes32 _streamHash, HookConfig calldata _hookConfig) public {
+        StreamData memory streamData = s_streamData[_streamHash];
+        if (msg.sender != streamData.streamer && msg.sender != streamData.recipient) revert PayStreams__Unauthorized();
+
+        s_hookConfig[msg.sender][_streamHash] = _hookConfig;
+
+        emit HookConfigSet(msg.sender, _streamHash);
+    }
+
+    /**
+     * @notice Checks if the caller is the creator of the stream.
+     * @param _streamData The stream details.
+     */
+    function _checkIfStreamCreator(StreamData memory _streamData) internal view {
+        if (msg.sender != _streamData.streamer) revert PayStreams__Unauthorized();
+    }
+
+    /**
+     * @notice Checks if the caller is the creator or recipient of the stream.
+     * @param _streamData The stream details.
+     */
+    function _checkIfCreatorOrStreamer(StreamData memory _streamData) internal view {
+        if (msg.sender != _streamData.streamer && msg.sender != _streamData.recipient) {
+            revert PayStreams__Unauthorized();
+        }
     }
 
     /**
@@ -405,17 +503,20 @@ contract PayStreams is Ownable, IPayStreams {
      */
     function getAmountToCollectFromStreamAndFeeToPay(bytes32 _streamHash) public view returns (uint256, uint256) {
         StreamData memory streamData = s_streamData[_streamHash];
-
         if (block.timestamp < streamData.startingTimestamp) return (0, 0);
 
-        uint256 amountToCollect = (
-            streamData.amount * (block.timestamp - streamData.startingTimestamp) / streamData.duration
-        ) - streamData.totalStreamed;
-        if (amountToCollect > streamData.amount && !streamData.recurring) {
-            amountToCollect = streamData.amount - streamData.totalStreamed;
-        } else if (amountToCollect > streamData.amount && streamData.recurring) {
-            amountToCollect -= streamData.totalStreamed;
+        uint256 amountToCollect;
+        if (streamData.lastPausedAt != 0) {
+            amountToCollect =
+                (streamData.amount * (streamData.lastPausedAt - streamData.startingTimestamp) / streamData.duration);
+        } else {
+            amountToCollect =
+                (streamData.amount * (block.timestamp - streamData.startingTimestamp) / streamData.duration);
         }
+        if (amountToCollect > streamData.amount && !streamData.recurring) {
+            amountToCollect = streamData.amount;
+        }
+        amountToCollect -= streamData.totalStreamed;
         uint256 feeAmount = (amountToCollect * s_feeInBasisPoints) / BASIS_POINTS;
 
         return (amountToCollect - feeAmount, feeAmount);

@@ -12,12 +12,12 @@ import { IHooks } from "../interfaces/IHooks.sol";
  * @title BaseVault.
  * @author mgnfy-view.
  * @notice This base vault implementation can be extended by developers to build various
- * plugins on top of the payStreams using hooks.
+ * plugins on top of the payStreams protocol using hooks.
  */
 abstract contract BaseVault is Ownable, IHooks {
     using SafeERC20 for IERC20;
 
-    event FundsCollected(address indexed token, uint256 indexed amount);
+    event FundsCollected(address indexed token, uint256 indexed amount, address indexed to);
 
     error BaseVault__InsufficientFunds();
 
@@ -33,6 +33,14 @@ abstract contract BaseVault is Ownable, IHooks {
 
     function afterStreamUpdated(bytes32 _streamHash) external virtual { }
 
+    function beforeStreamPaused(bytes32 _streamHash) external virtual { }
+
+    function afterStreamPaused(bytes32 _streamHash) external virtual { }
+
+    function beforeStreamUnPaused(bytes32 _streamHash) external virtual { }
+
+    function afterStreamUnPaused(bytes32 _streamHash) external virtual { }
+
     function beforeStreamClosed(bytes32 _streamHash) external virtual { }
 
     function afterStreamClosed(bytes32 _streamHash) external virtual { }
@@ -41,12 +49,13 @@ abstract contract BaseVault is Ownable, IHooks {
      * @notice Allows the owner to collect funds from the vault.
      * @param _token The token to be collected.
      * @param _amount The amount of token to be collected.
+     * @param _to The recipient of the funds.
      */
-    function collectFunds(address _token, uint256 _amount) external onlyOwner {
+    function collectFunds(address _token, uint256 _amount, address _to) external virtual onlyOwner {
         if (IERC20(_token).balanceOf(address(this)) < _amount) revert BaseVault__InsufficientFunds();
 
-        IERC20(_token).safeTransfer(msg.sender, _amount);
+        IERC20(_token).safeTransfer(_to, _amount);
 
-        emit FundsCollected(_token, _amount);
+        emit FundsCollected(_token, _amount, _to);
     }
 }
