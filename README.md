@@ -16,7 +16,7 @@
   <h3 align="center">PayStreams</h3>
 
   <p align="center">
-    PayStreams is a payment streaming service leveraging PYUSD, supercharged with hooks
+    PayStreams is a payment streaming service supercharged with hooks
     <br />
     <a href="https://github.com/mgnfy-view/pay-streams/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
@@ -52,9 +52,9 @@
 
 ## About The Project
 
-PayStreams is a payment streaming service which allows anyone to open token streams directed to any recipient. The recipient can collect the streamed funds over time, or when the stream ends. The stream creator can update, or cancel the stream as well. Streams can be one-time, or recurring.
+PayStreams is a payment streaming service which allows anyone to open token streams directed to any recipient. The recipient can collect the streamed funds over time, or when the stream ends. The stream creator can update, pause, unpause, or cancel the stream as well. Streams can be one-time, or recurring.
 
-PayStreams leverages the stability of PYUSD to avoid the volatilities of crypto coins, and ensures that the streaming service is reliable and pays out the correct value at any time. Additionally, we introduce hooks, which are functions with custom logic that can be invoked at various points during the stream's lifespan. To opt into hooks, both the streamer and the recipient can set custom vaults with correct functions and hook configuration, and these functions will be invoked by the `PayStreams` contract when certain events occur. Hooks open up a wide array of use cases and customizations, enabling developers to extend the functionality of streams. You can find some hook examples in the `./src/exampleHooks/` folder.
+Additionally, we introduce hooks, which are functions with custom logic that can be invoked at various points during the stream's lifespan. To opt into hooks, both the streamer and the recipient can set custom vaults with correct functions and hook configuration, and these functions will be invoked by the `PayStreams` contract when certain events occur. Hooks open up a wide array of use cases and customizations, enabling developers to extend the functionality of streams. You can find some hook examples in the `./src/exampleHooks/` folder.
 
 P.S. This project was built for the BuildOn hackathon on Devfolio.
 
