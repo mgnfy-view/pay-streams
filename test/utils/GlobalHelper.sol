@@ -7,6 +7,7 @@ import { IPayStreams } from "../../src/interfaces/IPayStreams.sol";
 
 import { PayStreams } from "../../src/PayStreams.sol";
 import { MockToken } from "./MockToken.sol";
+import { TestVault } from "./TestVault.sol";
 
 contract GlobalHelper is Test {
     address public deployer;
@@ -21,6 +22,7 @@ contract GlobalHelper is Test {
 
     PayStreams public stream;
 
+    /// @dev Example parameters for stream creation
     uint256 public amount = 100e6;
     uint256 public duration = 10 days;
     bool public recurring = false;
@@ -40,8 +42,21 @@ contract GlobalHelper is Test {
         vm.stopPrank();
     }
 
+    function _createTestStream() internal returns (bytes32) {
+        (IPayStreams.StreamData memory streamData, IPayStreams.HookConfig memory hookConfig, string memory tag) =
+            _getTestStreamCreationData();
+        _mintAndApprove(streamData.amount);
+
+        vm.startPrank(streamer);
+        bytes32 streamHash = stream.setStream(streamData, hookConfig, tag);
+        vm.stopPrank();
+
+        return streamHash;
+    }
+
     function _getTestStreamCreationData()
         internal
+        view
         returns (IPayStreams.StreamData memory, IPayStreams.HookConfig memory, string memory)
     {
         IPayStreams.StreamData memory streamData = IPayStreams.StreamData({
@@ -54,20 +69,56 @@ contract GlobalHelper is Test {
             startingTimestamp: block.timestamp,
             duration: duration,
             totalStreamed: 0,
-            recurring: recurring
+            recurring: recurring,
+            lastPausedAt: 0
         });
+        IPayStreams.HookConfig memory hookConfig = _getBaseHookConfig();
+        string memory tag = "test stream";
+
+        return (streamData, hookConfig, tag);
+    }
+
+    function _getBaseHookConfig() internal pure returns (IPayStreams.HookConfig memory) {
         IPayStreams.HookConfig memory hookConfig = IPayStreams.HookConfig({
             callAfterStreamCreated: false,
             callBeforeFundsCollected: false,
             callAfterFundsCollected: false,
             callBeforeStreamUpdated: false,
             callAfterStreamUpdated: false,
+            callBeforeStreamPaused: false,
+            callAfterStreamPaused: false,
+            callBeforeStreamUnPaused: false,
+            callAfterStreamUnPaused: false,
             callBeforeStreamClosed: false,
             callAfterStreamClosed: false
         });
-        string memory tag = "test stream";
 
-        return (streamData, hookConfig, tag);
+        return hookConfig;
+    }
+
+    function _setUpVault(address _for) internal returns (TestVault) {
+        vm.startPrank(_for);
+        TestVault vault = new TestVault();
+        vm.stopPrank();
+
+        return vault;
+    }
+
+    function _setUpVaultAndHooks(
+        bytes32 _streamHash,
+        address _for,
+        IPayStreams.HookConfig memory _hookConfig
+    )
+        internal
+        returns (TestVault)
+    {
+        vm.startPrank(_for);
+        TestVault vault = new TestVault();
+        stream.setVault(_streamHash, address(vault));
+        stream.setHookConfig(_streamHash, _hookConfig);
+        vm.stopPrank();
+
+        return vault;
     }
 
     function _setFee(uint16 _newFee) internal {
