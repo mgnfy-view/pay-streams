@@ -16,7 +16,7 @@ test :; forge test
 
 snapshot :; forge snapshot
 
-format-sol :; forge fmt
+format :; forge fmt
 
 anvil :; anvil -m 'test test test test test test test test test test test junk' --steps-tracing --block-time 1
 
