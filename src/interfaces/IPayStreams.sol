@@ -109,6 +109,7 @@ interface IPayStreams {
     error PayStreams__StreamAlreadyExists(bytes32 streamHash);
     error PayStreams__StreamHasNotStartedYet(bytes32 streamHash, uint256 startingTimestamp);
     error PayStreams__InvalidUpdateParams();
+    error PayStreams__CannotUpdateWhenStreamPaused();
     error PayStreams__CannotPauseStream();
     error PayStreams__NotPaused();
     error PayStreams__ZeroAmountToCollect();

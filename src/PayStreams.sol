@@ -229,6 +229,7 @@ contract PayStreams is Ownable, IPayStreams {
         ) {
             revert PayStreams__InvalidUpdateParams();
         }
+        if (streamData.lastPausedAt != 0) revert PayStreams__CannotUpdateWhenStreamPaused();
 
         HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
