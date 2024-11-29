@@ -70,12 +70,8 @@ contract PayStreamsAdminControlsTest is GlobalHelper {
 
         _setFee(newFee);
 
-        (IPayStreams.StreamData memory streamData, IPayStreams.HookConfig memory hookConfig, string memory tag) =
-            _getTestStreamCreationData();
-        _mintAndApprove(streamData.amount);
-        vm.startPrank(streamer);
-        bytes32 streamHash = stream.setStream(streamData, hookConfig, tag);
-        vm.stopPrank();
+        bytes32 streamHash = _createTestStream();
+        IPayStreams.StreamData memory streamData = stream.getStreamData(streamHash);
 
         _warpBy(streamData.duration);
         stream.collectFundsFromStream(streamHash);
