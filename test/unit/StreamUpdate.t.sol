@@ -264,11 +264,6 @@ contract StreamUpdateTest is GlobalHelper {
         stream.setVaultAndHookConfig(streamHash, address(vault), hookConfig);
         vm.stopPrank();
 
-        token.mint(address(vault), amount);
-        vm.startPrank(streamer);
-        vault.approve(address(token), address(stream), amount);
-        vm.stopPrank();
-
         uint256 updatedAmount = amount + 1;
         uint256 updatedStartingTimestamp = block.timestamp + 1;
         uint256 updatedDuration = 2 hours;
@@ -337,11 +332,6 @@ contract StreamUpdateTest is GlobalHelper {
 
         vm.startPrank(streamer);
         stream.setVaultAndHookConfig(streamHash, address(vault), hookConfig);
-        vm.stopPrank();
-
-        token.mint(address(vault), amount);
-        vm.startPrank(streamer);
-        vault.approve(address(token), address(stream), amount);
         vm.stopPrank();
 
         uint256 updatedAmount = amount + 1;
