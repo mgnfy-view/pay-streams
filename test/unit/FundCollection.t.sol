@@ -153,10 +153,6 @@ contract FundCollectionTest is GlobalHelper {
         stream.setVaultAndHookConfig(streamHash, address(vault), hookConfig);
         vm.stopPrank();
 
-        token.mint(address(vault), amount);
-        vm.startPrank(recipient);
-        vault.approve(address(token), address(stream), amount);
-        vm.stopPrank();
         _warpBy(duration);
 
         uint256 feeAmount = 0;
@@ -207,10 +203,6 @@ contract FundCollectionTest is GlobalHelper {
         stream.setVaultAndHookConfig(streamHash, address(vault), hookConfig);
         vm.stopPrank();
 
-        token.mint(address(vault), amount);
-        vm.startPrank(recipient);
-        vault.approve(address(token), address(stream), amount);
-        vm.stopPrank();
         _warpBy(duration);
 
         uint256 feeAmount = 0;
