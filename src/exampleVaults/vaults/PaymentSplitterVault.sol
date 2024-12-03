@@ -9,12 +9,10 @@ import { IPayStreams } from "../../interfaces/IPayStreams.sol";
 
 import { BaseVault } from "../../utils/BaseVault.sol";
 
-/**
- * @title PaymentSplitterVault.
- * @author mgnfy-view.
- * @notice A payment splitter vault that splits any streamed payment among a
- * list of recipients based on their assigned weights.
- */
+/// @title PaymentSplitterVault.
+/// @author mgnfy-view.
+/// @notice A payment splitter vault that splits any streamed payment among a
+/// list of recipients based on their assigned weights.
 contract PaymentSplitterVault is BaseVault {
     using SafeERC20 for IERC20;
 
@@ -34,12 +32,10 @@ contract PaymentSplitterVault is BaseVault {
         _;
     }
 
-    /**
-     * @notice Initializes the vault.
-     * @param _payStreams The address of the payStreams contract.
-     * @param _recipients A list of recipients of the streamed amount.
-     * @param _weights Assigned weight to each recipient in the list.
-     */
+    /// @notice Initializes the vault.
+    /// @param _payStreams The address of the payStreams contract.
+    /// @param _recipients A list of recipients of the streamed amount.
+    /// @param _weights Assigned weight to each recipient in the list.
     constructor(address _payStreams, address[] memory _recipients, uint256[] memory _weights) {
         if (_recipients.length != _weights.length) revert PaymentSplitterVault__ArrayLengthMismatch();
 
@@ -54,12 +50,10 @@ contract PaymentSplitterVault is BaseVault {
         s_totalWeight = totalWeight;
     }
 
-    /**
-     * @notice Once funds have been received by this vault, this function is invoked by the
-     * payStreams contract to split the streamed funds among multiple recipients based on their weight.
-     * @param _streamHash The hash of the stream.
-     * @param _amount The amount to received from stream.
-     */
+    /// @notice Once funds have been received by this vault, this function is invoked by the
+    /// payStreams contract to split the streamed funds among multiple recipients based on their weight.
+    /// @param _streamHash The hash of the stream.
+    /// @param _amount The amount to received from stream.
     function afterFundsCollected(
         bytes32 _streamHash,
         uint256 _amount,
@@ -85,11 +79,9 @@ contract PaymentSplitterVault is BaseVault {
         emit PaymentSplit(recipients, amounts);
     }
 
-    /**
-     * @notice Allows the owner to update the recipient and the weights list.
-     * @param _recipients The new list of recipients.
-     * @param _weights The weights assigned to each recipient.
-     */
+    /// @notice Allows the owner to update the recipient and the weights list.
+    /// @param _recipients The new list of recipients.
+    /// @param _weights The weights assigned to each recipient.
     function updateRecipientAndWeightsList(
         address[] memory _recipients,
         uint256[] memory _weights
@@ -110,34 +102,26 @@ contract PaymentSplitterVault is BaseVault {
         emit RecipientAndWeightsListUpdated(_recipients, _weights);
     }
 
-    /**
-     * @notice Gets the payStreams contract address.
-     * @return The payStreams contract address.
-     */
+    /// @notice Gets the payStreams contract address.
+    /// @return The payStreams contract address.
     function getPayStreams() external view returns (address) {
         return s_payStreams;
     }
 
-    /**
-     * @notice Gets the recipients list.
-     * @return The recipients list.
-     */
+    /// @notice Gets the recipients list.
+    /// @return The recipients list.
     function getRecipients() external view returns (address[] memory) {
         return s_recipients;
     }
 
-    /**
-     * @notice Gets the weights list.
-     * @return The weights list.
-     */
+    /// @notice Gets the weights list.
+    /// @return The weights list.
     function getWeights() external view returns (uint256[] memory) {
         return s_weights;
     }
 
-    /**
-     * @notice Gets the total weight based on the weights list.
-     * @return The total weight.
-     */
+    /// @notice Gets the total weight based on the weights list.
+    /// @return The total weight.
     function getTotalWeight() external view returns (uint256) {
         return s_totalWeight;
     }

@@ -28,11 +28,9 @@ import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import { IHooks } from "./interfaces/IHooks.sol";
 import { IPayStreams } from "./interfaces/IPayStreams.sol";
 
-/**
- * @title PayStreams.
- * @author mgnfy-view.
- * @notice PayStreams is a payment streamming service supercharged with hooks.
- */
+/// @title PayStreams.
+/// @author mgnfy-view.
+/// @notice PayStreams is a payment streamming service supercharged with hooks.
 contract PayStreams is Ownable, IPayStreams {
     using SafeERC20 for IERC20;
 
@@ -53,20 +51,16 @@ contract PayStreams is Ownable, IPayStreams {
     /// @dev The maximum gas that a hook can use. This prevents gas griefing attacks.
     uint256 private s_gasLimitForHooks;
 
-    /**
-     * @notice Initializes the owner and the fee value in basis points.
-     * @param _feeInBasisPoints The fee value in basis points.
-     */
+    /// @notice Initializes the owner and the fee value in basis points.
+    /// @param _feeInBasisPoints The fee value in basis points.
     constructor(uint16 _feeInBasisPoints, uint256 _gasLimitForHooks) Ownable(msg.sender) {
         if (_feeInBasisPoints > BASIS_POINTS) revert PayStreams__InvalidFeeInBasisPoints(_feeInBasisPoints);
         s_feeInBasisPoints = _feeInBasisPoints;
         s_gasLimitForHooks = _gasLimitForHooks;
     }
 
-    /**
-     * @notice Allows the owner to set the fee for streaming in basis points.
-     * @param _feeInBasisPoints The fee value in basis points.
-     */
+    /// @notice Allows the owner to set the fee for streaming in basis points.
+    /// @param _feeInBasisPoints The fee value in basis points.
     function setFeeInBasisPoints(uint16 _feeInBasisPoints) external onlyOwner {
         if (_feeInBasisPoints > BASIS_POINTS) revert PayStreams__InvalidFeeInBasisPoints(_feeInBasisPoints);
         s_feeInBasisPoints = _feeInBasisPoints;
@@ -74,10 +68,8 @@ contract PayStreams is Ownable, IPayStreams {
         emit FeeInBasisPointsSet(msg.sender, _feeInBasisPoints);
     }
 
-    /**
-     * @notice Allows the owner to set the gas limit for hooks.
-     * @param _gasLimitForHooks The gas limit for hooks.
-     */
+    /// @notice Allows the owner to set the gas limit for hooks.
+    /// @param _gasLimitForHooks The gas limit for hooks.
     function setGasLimitForHooks(uint256 _gasLimitForHooks) external onlyOwner {
         if (_gasLimitForHooks == 0) revert PayStreams__GasLimitZero();
         s_gasLimitForHooks = _gasLimitForHooks;
@@ -85,12 +77,10 @@ contract PayStreams is Ownable, IPayStreams {
         emit GasLimitForHooksSet(msg.sender, _gasLimitForHooks);
     }
 
-    /**
-     * @notice Allows the owner to withdraw fees collected from streams.
-     * @param _token The address of the token.
-     * @param _amount The amount of collected fees to withdraw.
-     * @param _to The recipient of the funds.
-     */
+    /// @notice Allows the owner to withdraw fees collected from streams.
+    /// @param _token The address of the token.
+    /// @param _amount The amount of collected fees to withdraw.
+    /// @param _to The recipient of the funds.
     function collectFees(address _token, uint256 _amount, address _to) external onlyOwner {
         if (s_collectedFees[_token] < _amount) revert PayStreams__InsufficientCollectedFees();
 
@@ -100,14 +90,12 @@ contract PayStreams is Ownable, IPayStreams {
         emit FeesCollected(_token, _amount, _to);
     }
 
-    /**
-     * @notice Allows anyone to create a stream with custom parameters and hook configuration.
-     * @param _streamData The stream details.
-     * @param _streamerHookConfig The streamer's hook configuration.
-     * @param _tag Salt for stream creation. This allows a streamer to create multiple streams for different
-     * purposes targeted towards the same recipient and using the same token.
-     * @return The hash of the newly created stream.
-     */
+    /// @notice Allows anyone to create a stream with custom parameters and hook configuration.
+    /// @param _streamData The stream details.
+    /// @param _streamerHookConfig The streamer's hook configuration.
+    /// @param _tag Salt for stream creation. This allows a streamer to create multiple streams for different
+    /// purposes targeted towards the same recipient and using the same token.
+    /// @return The hash of the newly created stream.
     function setStream(
         StreamData calldata _streamData,
         HookConfig calldata _streamerHookConfig,
@@ -139,10 +127,8 @@ contract PayStreams is Ownable, IPayStreams {
         return streamHash;
     }
 
-    /**
-     * @notice Allows the recipient to collect funds from a stream. Can be called by anyone.
-     * @param _streamHash The hash of the stream.
-     */
+    /// @notice Allows the recipient to collect funds from a stream. Can be called by anyone.
+    /// @param _streamHash The hash of the stream.
     function collectFundsFromStream(bytes32 _streamHash) external {
         StreamData memory streamData = s_streamData[_streamHash];
         uint256 gasLimitForHooks = s_gasLimitForHooks;
@@ -200,14 +186,12 @@ contract PayStreams is Ownable, IPayStreams {
         emit FundsCollectedFromStream(_streamHash, amountToCollect, feeAmount);
     }
 
-    /**
-     * @notice Allows the creator of a stream to update the stream parameters.
-     * @param _streamHash The hash of the stream.
-     * @param _amount The new amount to stream.
-     * @param _startingTimestamp The new starting timestamp.
-     * @param _duration The new stream duration.
-     * @param _recurring Update stream to be recurring or not.
-     */
+    /// @notice Allows the creator of a stream to update the stream parameters.
+    /// @param _streamHash The hash of the stream.
+    /// @param _amount The new amount to stream.
+    /// @param _startingTimestamp The new starting timestamp.
+    /// @param _duration The new stream duration.
+    /// @param _recurring Update stream to be recurring or not.
     function updateStream(
         bytes32 _streamHash,
         uint256 _amount,
@@ -256,10 +240,8 @@ contract PayStreams is Ownable, IPayStreams {
         emit StreamUpdated(_streamHash, _amount, _startingTimestamp, _duration, _recurring, _updateConfig);
     }
 
-    /**
-     * @notice Allows a streamer to pause an ongoing stream.
-     * @param _streamHash The hash of the stream.
-     */
+    /// @notice Allows a streamer to pause an ongoing stream.
+    /// @param _streamHash The hash of the stream.
     function pauseStream(bytes32 _streamHash) external {
         StreamData memory streamData = s_streamData[_streamHash];
         uint256 gasLimitForHooks = s_gasLimitForHooks;
@@ -293,10 +275,8 @@ contract PayStreams is Ownable, IPayStreams {
         emit StreamPaused(_streamHash);
     }
 
-    /**
-     * @notice Allows a streamer to unpause a paused stream.
-     * @param _streamHash The hash of the stream.
-     */
+    /// @notice Allows a streamer to unpause a paused stream.
+    /// @param _streamHash The hash of the stream.
     function unPauseStream(bytes32 _streamHash) external {
         StreamData memory streamData = s_streamData[_streamHash];
         uint256 gasLimitForHooks = s_gasLimitForHooks;
@@ -328,10 +308,8 @@ contract PayStreams is Ownable, IPayStreams {
         emit StreamUnPaused(_streamHash);
     }
 
-    /**
-     * @notice Allows the creator of a stream to cancel the stream.
-     * @param _streamHash The hash of the stream.
-     */
+    /// @notice Allows the creator of a stream to cancel the stream.
+    /// @param _streamHash The hash of the stream.
     function cancelStream(bytes32 _streamHash) external {
         StreamData memory streamData = s_streamData[_streamHash];
         uint256 gasLimitForHooks = s_gasLimitForHooks;
@@ -359,18 +337,20 @@ contract PayStreams is Ownable, IPayStreams {
         emit StreamCancelled(_streamHash);
     }
 
+    /// @notice Sets the vault and hook config for streamer/recipient.
+    /// @param _streamHash The hash of the stream.
+    /// @param _vault The streamer's or recipient's vault address.
+    /// @param _hookConfig The streamer's or recipient's hook configuration.
     function setVaultAndHookConfig(bytes32 _streamHash, address _vault, HookConfig calldata _hookConfig) external {
         setVault(_streamHash, _vault);
         setHookConfig(_streamHash, _hookConfig);
     }
 
-    /**
-     * @notice Allows the streamer or recipient of a stream to set their respective vaults.
-     * @dev Hooks can only be called on correctly configured and set vaults (both on streamer's
-     * and recipient's end).
-     * @param _streamHash The hash of the stream.
-     * @param _vault The streamer's or recipient's vault address.
-     */
+    /// @notice Allows the streamer or recipient of a stream to set their respective vaults.
+    /// @dev Hooks can only be called on correctly configured and set vaults (both on streamer's
+    /// and recipient's end).
+    /// @param _streamHash The hash of the stream.
+    /// @param _vault The streamer's or recipient's vault address.
     function setVault(bytes32 _streamHash, address _vault) public {
         StreamData memory streamData = s_streamData[_streamHash];
         _checkIfCreatorOrStreamer(streamData);
@@ -382,11 +362,9 @@ contract PayStreams is Ownable, IPayStreams {
         emit VaultSet(msg.sender, _streamHash, _vault);
     }
 
-    /**
-     * @notice Allows streamers and recipients to set their hook configuration.
-     * @param _streamHash The hash of the stream.
-     * @param _hookConfig The streamer's or recipient's hook configuration.
-     */
+    /// @notice Allows streamers and recipients to set their hook configuration.
+    /// @param _streamHash The hash of the stream.
+    /// @param _hookConfig The streamer's or recipient's hook configuration.
     function setHookConfig(bytes32 _streamHash, HookConfig calldata _hookConfig) public {
         StreamData memory streamData = s_streamData[_streamHash];
         if (msg.sender != streamData.streamer && msg.sender != streamData.recipient) revert PayStreams__Unauthorized();
@@ -396,94 +374,74 @@ contract PayStreams is Ownable, IPayStreams {
         emit HookConfigSet(msg.sender, _streamHash);
     }
 
-    /**
-     * @notice Checks if the caller is the creator of the stream.
-     * @param _streamData The stream details.
-     */
+    /// @notice Checks if the caller is the creator of the stream.
+    /// @param _streamData The stream details.
     function _checkIfStreamCreator(StreamData memory _streamData) internal view {
         if (msg.sender != _streamData.streamer) revert PayStreams__Unauthorized();
     }
 
-    /**
-     * @notice Checks if the caller is the creator or recipient of the stream.
-     * @param _streamData The stream details.
-     */
+    /// @notice Checks if the caller is the creator or recipient of the stream.
+    /// @param _streamData The stream details.
     function _checkIfCreatorOrStreamer(StreamData memory _streamData) internal view {
         if (msg.sender != _streamData.streamer && msg.sender != _streamData.recipient) {
             revert PayStreams__Unauthorized();
         }
     }
 
-    /**
-     * @notice Gets the fee value for streaming in basis points.
-     * @return The fee value for streaming in basis points.
-     */
+    /// @notice Gets the fee value for streaming in basis points.
+    /// @return The fee value for streaming in basis points.
     function getFeeInBasisPoints() external view returns (uint16) {
         return s_feeInBasisPoints;
     }
 
-    /**
-     * @notice Gets the total amount collected in fees for a given token.
-     * @param _token The address of the token.
-     * @return The amount of token collected in fees.
-     */
+    /// @notice Gets the total amount collected in fees for a given token.
+    /// @param _token The address of the token.
+    /// @return The amount of token collected in fees.
     function getCollectedFees(address _token) external view returns (uint256) {
         return s_collectedFees[_token];
     }
 
-    /**
-     * @notice Gets the details for a given stream.
-     * @param _streamHash The hash of the stream.
-     * @return The stream details.
-     */
+    /// @notice Gets the details for a given stream.
+    /// @param _streamHash The hash of the stream.
+    /// @return The stream details.
     function getStreamData(bytes32 _streamHash) external view returns (StreamData memory) {
         return s_streamData[_streamHash];
     }
 
-    /**
-     * @notice Gets the hook configuration for a given user and a given stream hash.
-     * @param _user The user's address.
-     * @param _streamHash The hash of the stream.
-     * @return The hook configuration details.
-     */
+    /// @notice Gets the hook configuration for a given user and a given stream hash.
+    /// @param _user The user's address.
+    /// @param _streamHash The hash of the stream.
+    /// @return The hook configuration details.
     function getHookConfig(address _user, bytes32 _streamHash) external view returns (HookConfig memory) {
         return s_hookConfig[_user][_streamHash];
     }
 
-    /**
-     * @notice Gets the hashes of the streams created by a user.
-     * @param _streamer The stream creator's address.
-     * @return An array of stream hashes.
-     */
+    /// @notice Gets the hashes of the streams created by a user.
+    /// @param _streamer The stream creator's address.
+    /// @return An array of stream hashes.
     function getStreamerStreamHashes(address _streamer) external view returns (bytes32[] memory) {
         return s_streamerToStreamHashes[_streamer];
     }
 
-    /**
-     * @notice Gets the hashes of the streams the user is a recipient of.
-     * @param _recipient The stream recipient's address.
-     * @return An array of stream hashes.
-     */
+    /// @notice Gets the hashes of the streams the user is a recipient of.
+    /// @param _recipient The stream recipient's address.
+    /// @return An array of stream hashes.
     function getRecipientStreamHashes(address _recipient) external view returns (bytes32[] memory) {
         return s_recipientToStreamHashes[_recipient];
     }
 
-    /**
-     * @notice Gets the gas limit for hooks.
-     * @return The gas limit for hooks.
-     */
+    /// @notice Gets the gas limit for hooks.
+    /// @return The gas limit for hooks.
     function getGasLimitForHooks() external view returns (uint256) {
         return s_gasLimitForHooks;
     }
 
-    /**
-     * @notice Computes the hash of a stream from the streamer, recipient, token addresses and a string tag.
-     * @param _streamer The address of the stream creator.
-     * @param _recipient The address of the stream recipient.
-     * @param _token The address of the token.
-     * @param _tag Salt for stream creation.
-     * @return The hash of the stream.
-     */
+    /// @notice Computes the hash of a stream from the streamer, recipient, token addresses and a string tag.
+    /// @param _streamer The address of the stream creator.
+    /// @param _recipient The address of the stream recipient.
+    /// @param _token The address of the token.
+    /// @param _tag Salt for stream creation.
+    /// @return The hash of the stream.
     function getStreamHash(
         address _streamer,
         address _recipient,
@@ -497,12 +455,10 @@ contract PayStreams is Ownable, IPayStreams {
         return keccak256(abi.encode(_streamer, _recipient, _token, _tag));
     }
 
-    /**
-     * @notice Gets the amount withdrawable from the stream as well as the fee amount.
-     * @param _streamHash The hash of the stream.
-     * @return The amount of funds withdrawable from the stream.
-     * @return The fee amount applied to the withdrawable funds.
-     */
+    /// @notice Gets the amount withdrawable from the stream as well as the fee amount.
+    /// @param _streamHash The hash of the stream.
+    /// @return The amount of funds withdrawable from the stream.
+    /// @return The fee amount applied to the withdrawable funds.
     function getAmountToCollectFromStreamAndFeeToPay(bytes32 _streamHash) public view returns (uint256, uint256) {
         StreamData memory streamData = s_streamData[_streamHash];
         if (block.timestamp < streamData.startingTimestamp) return (0, 0);

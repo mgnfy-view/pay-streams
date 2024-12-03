@@ -65,11 +65,9 @@ interface IPayStreams {
         bool callAfterStreamClosed;
     }
 
-    /**
-     * @notice The update function can update all the 4 params - amount, starting timestamp,
-     * duration, and the recurring variable. Flags must be passed to indicate which values
-     * to update and which to ignore.
-     */
+    /// @notice The update function can update all the 4 params - amount, starting timestamp,
+    /// duration, and the recurring variable. Flags must be passed to indicate which values
+    /// to update and which to ignore.
     struct UpdateConfig {
         /// @dev A boolean indicating whether to update the amount or not.
         bool updateAmount;
