@@ -268,24 +268,25 @@ contract PayStreams is Ownable, IPayStreams {
         if (
             block.timestamp < streamData.startingTimestamp
                 || (block.timestamp > streamData.startingTimestamp + streamData.duration && !streamData.recurring)
+                || streamData.lastPausedAt != 0
         ) revert PayStreams__CannotPauseStream();
 
         HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
 
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamUpdated) {
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamPaused) {
             IHooks(streamData.streamerVault).beforeStreamPaused{ gas: gasLimitForHooks }(_streamHash);
         }
-        if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeStreamUpdated) {
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeStreamPaused) {
             IHooks(streamData.recipientVault).beforeStreamPaused{ gas: gasLimitForHooks }(_streamHash);
         }
 
         s_streamData[_streamHash].lastPausedAt = block.timestamp;
 
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamUpdated) {
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamPaused) {
             IHooks(streamData.streamerVault).afterStreamPaused{ gas: gasLimitForHooks }(_streamHash);
         }
-        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamUpdated) {
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamPaused) {
             IHooks(streamData.recipientVault).afterStreamPaused{ gas: gasLimitForHooks }(_streamHash);
         }
 
@@ -306,10 +307,10 @@ contract PayStreams is Ownable, IPayStreams {
         HookConfig memory streamerHookConfig = s_hookConfig[streamData.streamer][_streamHash];
         HookConfig memory recipientHookConfig = s_hookConfig[streamData.recipient][_streamHash];
 
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamUpdated) {
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callBeforeStreamUnPaused) {
             IHooks(streamData.streamerVault).beforeStreamUnPaused{ gas: gasLimitForHooks }(_streamHash);
         }
-        if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeStreamUpdated) {
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callBeforeStreamUnPaused) {
             IHooks(streamData.recipientVault).beforeStreamUnPaused{ gas: gasLimitForHooks }(_streamHash);
         }
 
@@ -317,10 +318,10 @@ contract PayStreams is Ownable, IPayStreams {
             block.timestamp - (streamData.lastPausedAt - streamData.startingTimestamp);
         s_streamData[_streamHash].lastPausedAt = 0;
 
-        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamUpdated) {
+        if (streamData.streamerVault != address(0) && streamerHookConfig.callAfterStreamUnPaused) {
             IHooks(streamData.streamerVault).afterStreamUnPaused{ gas: gasLimitForHooks }(_streamHash);
         }
-        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamUpdated) {
+        if (streamData.recipientVault != address(0) && recipientHookConfig.callAfterStreamUnPaused) {
             IHooks(streamData.recipientVault).afterStreamUnPaused{ gas: gasLimitForHooks }(_streamHash);
         }
 
