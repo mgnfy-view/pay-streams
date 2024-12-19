@@ -99,7 +99,7 @@ That's it, you are good to go now!
 ## Roadmap
 
 -   [x] Smart contract development
--   [ ] Unit tests
+-   [x] Unit tests
 -   [x] Write a good README.md
 
 See the [open issues](https://github.com/mgnfy-view/pay-streams/issues) for a full list of proposed features (and known issues).
